@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 // Simple demo to select a CC1101 profile and dump register configuration after applying.
 // Usage: ./rx_profile_demo -mTPMS | -mIoT | -mOOK | -mGFSK100
