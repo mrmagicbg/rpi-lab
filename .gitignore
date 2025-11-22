@@ -1,0 +1,35 @@
+# Compiled binaries
+*.o
+*.out
+*.so
+*.a
+RX_Demo
+TX_Demo
+rx_profile_demo
+
+# Backup files
+*.bak
+*.swp
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.code-workspace
+
+# Build artifacts
+build/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and debug
+*.log
+debug_*.txt
