@@ -13,11 +13,26 @@ import os
 import subprocess
 import curses
 import logging
+import threading
+import time
+try:
+    from evdev import InputDevice, categorize, ecodes, AbsEvent
+except ImportError:
+    InputDevice = None
+    AbsEvent = None
+    ecodes = None
+    categorize = None
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('rpi_tui')
 
 MENU = [
+    BUTTONS = [
+        {"label": "↑", "action": "up"},
+        {"label": "↓", "action": "down"},
+        {"label": "Enter", "action": "enter"},
+        {"label": "Cancel", "action": "cancel"}
+    ]
     "Run RF Script(s)",
     "Reboot Raspberry Pi",
     "Open Shell (CLI)",
@@ -48,33 +63,72 @@ def open_shell():
 
 
 def main_menu(stdscr):
+        # Touch event state
+        touch_action = {"action": None}
+        def touch_thread():
+            if not InputDevice:
+                return
+            try:
+                dev = InputDevice('/dev/input/event0')
+            except Exception as e:
+                logger.warning(f"Touch device not found: {e}")
+                return
+            x, y = 0, 0
+            while True:
+                for event in dev.read_loop():
+                    if event.type == ecodes.EV_ABS:
+                        if event.code == ecodes.ABS_X:
+                            x = event.value
+                        elif event.code == ecodes.ABS_Y:
+                            y = event.value
+                    elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH and event.value == 1:
+                        # Map touch coordinates to button
+                        # Assume display is 800x480, adjust as needed
+                        if 400 < y < 480:
+                            # Button row
+                            btn_width = 200
+                            idx = x // btn_width
+                            if 0 <= idx < len(BUTTONS):
+                                touch_action["action"] = BUTTONS[idx]["action"]
+                time.sleep(0.01)
+        threading.Thread(target=touch_thread, daemon=True).start()
     curses.curs_set(0)
-    try:
-        curses.mousemask(curses.ALL_MOUSE_EVENTS | curses.REPORT_MOUSE_POSITION)
-    except Exception:
-        logger.debug('Mouse support not available')
     current_row = 0
     while True:
         stdscr.clear()
         h, w = stdscr.getmaxyx()
         title = "RPI TUI"
+        # Draw title
         try:
             stdscr.addstr(1, w // 2 - len(title) // 2, title, curses.A_BOLD)
         except curses.error:
             pass
+        # Draw menu with large text
         for idx, row in enumerate(MENU):
             x = w // 2 - len(row) // 2
-            y = h // 2 - len(MENU) // 2 + idx
+            y = h // 2 - len(MENU) * 2 + idx * 4
             try:
                 if idx == current_row:
                     stdscr.attron(curses.color_pair(1))
-                    stdscr.addstr(y, x, row)
+                    stdscr.addstr(y, x, row, curses.A_BOLD)
                     stdscr.attroff(curses.color_pair(1))
                 else:
                     stdscr.addstr(y, x, row)
             except curses.error:
                 pass
+        # Draw large buttons at bottom
+        btn_y = h - 4
+        btn_width = w // len(BUTTONS)
+        for idx, btn in enumerate(BUTTONS):
+            bx = idx * btn_width
+            try:
+                stdscr.attron(curses.color_pair(2))
+                stdscr.addstr(btn_y, bx + btn_width // 2 - len(btn["label"]) // 2, btn["label"], curses.A_BOLD)
+                stdscr.attroff(curses.color_pair(2))
+            except curses.error:
+                pass
         stdscr.refresh()
+        # Handle keyboard
         key = stdscr.getch()
         if key == curses.KEY_UP and current_row > 0:
             current_row -= 1
@@ -89,25 +143,24 @@ def main_menu(stdscr):
                 open_shell()
             elif current_row == 3:
                 break
-        elif key == curses.KEY_MOUSE:
-            try:
-                _, mx, my, _, bstate = curses.getmouse()
-                # Map mouse click to menu item
-                for idx in range(len(MENU)):
-                    y = h // 2 - len(MENU) // 2 + idx
-                    if my == y:
-                        current_row = idx
-                        if bstate & curses.BUTTON1_CLICKED:
-                            if current_row == 0:
-                                run_rf_script()
-                            elif current_row == 1:
-                                reboot_pi()
-                            elif current_row == 2:
-                                open_shell()
-                            elif current_row == 3:
-                                return
-            except Exception:
-                logger.exception("Mouse event handling failed")
+        # Handle touch actions
+        if touch_action["action"]:
+            if touch_action["action"] == "up" and current_row > 0:
+                current_row -= 1
+            elif touch_action["action"] == "down" and current_row < len(MENU) - 1:
+                current_row += 1
+            elif touch_action["action"] == "enter":
+                if current_row == 0:
+                    run_rf_script()
+                elif current_row == 1:
+                    reboot_pi()
+                elif current_row == 2:
+                    open_shell()
+                elif current_row == 3:
+                    break
+            elif touch_action["action"] == "cancel":
+                break
+            touch_action["action"] = None
 
 
 def setup_curses():
@@ -117,6 +170,7 @@ def setup_curses():
 def _curses_main(stdscr):
     curses.start_color()
     curses.init_pair(1, curses.COLOR_BLACK, curses.COLOR_CYAN)
+    curses.init_pair(2, curses.COLOR_WHITE, curses.COLOR_BLUE)
     main_menu(stdscr)
 
 
