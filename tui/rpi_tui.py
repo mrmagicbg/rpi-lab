@@ -88,9 +88,46 @@ def main_menu(stdscr):
         if not InputDevice:
             logger.warning("evdev not available, touch will not work.")
             return
+        
+        # Find the touchscreen device
+        touchscreen_device = None
         try:
-            dev = InputDevice('/dev/input/event0')
-            logger.info("Touch device opened: /dev/input/event0")
+            from evdev import list_devices
+            devices = [InputDevice(path) for path in list_devices()]
+            for dev in devices:
+                logger.info(f"Found input device: {dev.path} - {dev.name}")
+                # Look for touchscreen devices
+                if 'touchscreen' in dev.name.lower() or 'goodix' in dev.name.lower() or 'capacitive' in dev.name.lower():
+                    touchscreen_device = dev.path
+                    logger.info(f"Using touchscreen device: {dev.path} - {dev.name}")
+                    break
+            
+            # Fallback to common event devices if no touchscreen found
+            if not touchscreen_device:
+                for event_num in range(10):  # Check event0 through event9
+                    event_path = f'/dev/input/event{event_num}'
+                    try:
+                        dev = InputDevice(event_path)
+                        logger.info(f"Checking {event_path}: {dev.name}")
+                        # Check if it has touch capabilities
+                        caps = dev.capabilities()
+                        if ecodes.EV_ABS in caps and (ecodes.ABS_X in caps[ecodes.EV_ABS] or getattr(ecodes, 'ABS_MT_POSITION_X', None) in caps[ecodes.EV_ABS]):
+                            touchscreen_device = event_path
+                            logger.info(f"Using detected touch device: {event_path} - {dev.name}")
+                            break
+                    except Exception as e:
+                        logger.debug(f"Could not check {event_path}: {e}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Error detecting touchscreen device: {e}")
+        
+        if not touchscreen_device:
+            logger.warning("No touchscreen device found, touch will not work.")
+            return
+        
+        try:
+            dev = InputDevice(touchscreen_device)
+            logger.info(f"Touch device opened: {touchscreen_device}")
         except Exception as e:
             logger.warning(f"Touch device not found: {e}")
             return
@@ -104,9 +141,9 @@ def main_menu(stdscr):
                 touch_state['x_max'] = xinfo.max
                 touch_state['y_min'] = yinfo.min
                 touch_state['y_max'] = yinfo.max
-            logger.info(f"Touch ranges X: {xinfo.min}..{xinfo.max} Y: {yinfo.min}..{yinfo.max}")
-        except Exception:
-            logger.debug('Could not read ABS ranges; using defaults')
+            logger.info(f"Touch ranges detected - X: {xinfo.min}..{xinfo.max} Y: {yinfo.min}..{yinfo.max}")
+        except Exception as e:
+            logger.warning(f'Could not read ABS ranges: {e}; using defaults')
 
         raw_x, raw_y = None, None
         last_syn_time = 0
@@ -120,10 +157,12 @@ def main_menu(stdscr):
                     raw_x = event.value
                     with touch_lock:
                         touch_state['raw_x'] = raw_x
+                    logger.debug(f"Touch X: {raw_x}")
                 elif event.code in (ecodes.ABS_Y, getattr(ecodes, 'ABS_MT_POSITION_Y', None)):
                     raw_y = event.value
                     with touch_lock:
                         touch_state['raw_y'] = raw_y
+                    logger.debug(f"Touch Y: {raw_y}")
             elif event.type == ecodes.EV_KEY and event.code == getattr(ecodes, 'BTN_TOUCH', None):
                 # value 1 = press, 0 = release
                 pressed = bool(event.value)
@@ -203,6 +242,8 @@ def main_menu(stdscr):
             x_max = touch_state.get('x_max')
             y_min = touch_state.get('y_min')
             y_max = touch_state.get('y_max')
+        
+        logger.debug(f"Main loop touch state: raw_x={raw_x}, raw_y={raw_y}, pressed={pressed}")
 
         # Scale raw to terminal coords if possible
         scaled_x = None
@@ -212,7 +253,8 @@ def main_menu(stdscr):
                 scaled_x = int((raw_x - x_min) * (w - 1) / (x_max - x_min))
                 scaled_y = int((raw_y - y_min) * (h - 1) / (y_max - y_min))
                 logger.debug(f"Scaled using ranges: raw_x={raw_x}({x_min}-{x_max}) -> scaled_x={scaled_x}, raw_y={raw_y}({y_min}-{y_max}) -> scaled_y={scaled_y}")
-            except Exception:
+            except Exception as e:
+                logger.warning(f"Error scaling coordinates: {e}")
                 scaled_x = None
                 scaled_y = None
         else:
@@ -228,6 +270,9 @@ def main_menu(stdscr):
                 except Exception:
                     scaled_y = None
             logger.debug(f"Scaled using fallback: raw_x={raw_x} -> scaled_x={scaled_x}, raw_y={raw_y} -> scaled_y={scaled_y}")
+
+        # Debug touch state
+        logger.debug(f"Touch state: raw_x={raw_x}, raw_y={raw_y}, pressed={pressed}, scaled_x={scaled_x}, scaled_y={scaled_y}")
 
         dbg_lines = [
             f"rawX:{raw_x} rawY:{raw_y}",
