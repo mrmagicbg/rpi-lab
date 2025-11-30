@@ -71,6 +71,7 @@ def open_shell():
 
 def main_menu(stdscr):
     logger.info("Main menu initializing...")
+    logger.info(f"Terminal size: {stdscr.getmaxyx()}")
     # Thread-safe touch state
     touch_state = {
         "raw_x": None,

@@ -1,7 +1,8 @@
 [Unit]
 Description=RPI TUI Application (runs on tty1)
-After=network.target multi-user.target
+After=network.target multi-user.target getty@tty1.service
 Wants=multi-user.target
+Conflicts=getty@tty1.service
 
 [Service]
 Type=simple
