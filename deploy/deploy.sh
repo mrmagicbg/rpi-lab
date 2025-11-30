@@ -39,6 +39,50 @@ parse_args "$@"
 [ -d "$REPO_DIR/.git" ] || die "REPO_DIR $REPO_DIR missing or not a git repo."
 [ "$EUID" -eq 0 ] || die "Must run as root"
 
+# Prompt for branch if not set via environment
+if [ -z "${DEPLOY_BRANCH:-}" ]; then
+    echo ""
+    echo "============================================================================"
+    echo "  Deployment Script for rpi-lab"
+    echo "============================================================================"
+    echo ""
+    read -p "Enter branch to deploy: " DEPLOY_BRANCH
+fi
+
+# Validate branch name
+if [ -z "$DEPLOY_BRANCH" ]; then
+    die "Branch name cannot be empty"
+fi
+
+# Deployment confirmation
+echo ""
+echo "============================================================================"
+echo "  DEPLOYMENT CONFIRMATION"
+echo "============================================================================"
+echo "  Repository:        $REPO_DIR"
+echo "  Branch:            $DEPLOY_BRANCH"
+echo "  App Directory:     $APP_DIR"
+echo "  Service:           $SERVICE_NAME"
+echo "  Backup:            $([ $DO_BACKUP -eq 1 ] && echo "Yes" || echo "No")"
+echo "  Hard Reset:        $([ $HARD -eq 1 ] && echo "Yes" || echo "No")"
+echo "  Dry Run:           $([ $DRY_RUN -eq 1 ] && echo "Yes" || echo "No")"
+echo "============================================================================"
+echo ""
+echo "To confirm deployment, type the branch name exactly: $DEPLOY_BRANCH"
+read -p "Confirmation: " BRANCH_CONFIRM
+
+if [ "$BRANCH_CONFIRM" != "$DEPLOY_BRANCH" ]; then
+    echo ""
+    err "Confirmation failed. You entered: '$BRANCH_CONFIRM'"
+    err "Expected: '$DEPLOY_BRANCH'"
+    err "Deployment aborted."
+    exit 1
+fi
+
+echo ""
+echo "Deployment confirmed. Proceeding..."
+echo ""
+
 log "Config: REPO_DIR=$REPO_DIR APP_DIR=$APP_DIR BACKUP=$DO_BACKUP HARD=$HARD"
 
 if [ $DO_BACKUP -eq 1 ]; then
