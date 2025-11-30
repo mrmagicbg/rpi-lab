@@ -46,11 +46,17 @@ sudo /opt/rpi-lab/install/venv_setup.sh
 sudo /opt/rpi-lab/install/install_service.sh
 ```
 
-Or use the deployment script for full redeployment:
+Or use the deployment script for full redeployment (recommended):
 
 ```bash
 sudo bash ~/rpi-lab/deploy/deploy.sh
 ```
+
+The deployment script includes safety features:
+- Prompts for branch confirmation to prevent accidental deployments
+- Creates backups of existing installations
+- Supports dry-run mode for testing
+- Handles venv recreation and service restarts
 
 Installation (detailed)
 -----------------------
@@ -83,8 +89,18 @@ sudo /opt/rpi-lab/install/install_service.sh    # install and enable TUI systemd
 Or use the deployment script for full redeployment (recommended for updates):
 
 ```bash
-sudo bash /opt/rpi-lab/deploy/deploy.sh [--no-backup] [--hard]
+sudo bash /opt/rpi-lab/deploy/deploy.sh [--no-backup] [--hard] [--dry-run]
 ```
+
+**Deployment Script Features:**
+- **Safety Prompts**: Requires branch name confirmation to prevent accidental deployments
+- **Automatic Backups**: Creates timestamped backups before making changes
+- **Flexible Options**: 
+  - `--no-backup`: Skip backup creation
+  - `--hard`: Force git reset to remote branch (discards local changes)
+  - `--dry-run`: Show what would be done without making changes
+- **Smart Repo Detection**: Automatically finds repo location from script path
+- **Service Management**: Handles systemd reload and service restart
 
 Service management
 ------------------
@@ -119,6 +135,12 @@ Run the TUI directly to see debug output (inside the venv):
 source /opt/rpi-lab/.venv/bin/activate
 sudo /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py
 ```
+
+**Touch Debugging Features:**
+- The TUI logs detailed touch coordinate information
+- Shows raw touch values, scaled coordinates, and button mapping
+- Helps diagnose touch calibration and button position issues
+- Check logs with: `sudo journalctl -xeu rpi_tui.service --no-pager`
 
 Troubleshooting
 ---------------

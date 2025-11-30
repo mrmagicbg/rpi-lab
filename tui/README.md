@@ -1,6 +1,8 @@
 RPI TUI service
 ================
 
+The TUI (Text User Interface) provides a console-based menu system for Raspberry Pi operations including RF script execution, system reboot, and shell access. Features touchscreen support with on-screen navigation buttons.
+
 If you change the unit file `rpi_tui.service`, reload systemd and (re)enable the service:
 
 ```bash
@@ -9,6 +11,12 @@ sudo systemctl enable --now rpi_tui.service
 ```
 
 The service includes a short startup delay to allow the system to reach `multi-user.target`.
+
+**Recent Improvements:**
+- Enhanced touchscreen support with improved coordinate mapping
+- Detailed touch event logging for debugging
+- More reliable touch button detection
+- Better handling of different touchscreen drivers
 
 Quick setup
 -----------
@@ -51,6 +59,7 @@ sudo journalctl -xeu rpi_tui.service --no-pager
 	- Virtualenv path missing: confirm `/opt/rpi-lab/.venv/bin/python` exists.
 	- Permission error on `/dev/tty1`: verify the service runs as a user with access to the TTY or run as `root`.
 	- Python import/runtime error: run the script manually (see Manual run) and capture the traceback.
+	- Touch not working: check that evdev is installed and `/dev/input/event0` exists. The TUI logs detailed touch coordinates for debugging.
 
 start.sh wrapper
 ----------------

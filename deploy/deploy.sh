@@ -1,6 +1,32 @@
 #!/usr/bin/env bash
-# deploy.sh - Redeploy rpi-lab to /opt/rpi-lab safely and restart TUI service
-# Usage: sudo bash deploy.sh [--no-backup] [--hard]
+# deploy.sh - Safe redeployment script for rpi-lab
+#
+# This script safely redeploys rpi-lab from a git repository to /opt/rpi-lab
+# with backup creation, venv management, and service restart.
+#
+# Features:
+# - Safety confirmation prompts (requires typing branch name)
+# - Automatic backup creation with timestamps
+# - Smart repository detection from script location
+# - Virtual environment recreation
+# - Systemd service management
+#
+# Usage: sudo bash deploy.sh [OPTIONS]
+# Options:
+#   --no-backup    Skip creating backup before deployment
+#   --hard         Force git reset --hard to remote branch (discards local changes)
+#   --dry-run      Show what would be done without making changes
+#
+# Environment Variables:
+#   DEPLOY_BRANCH  Branch to deploy (defaults to 'main', prompts if not set)
+#   APP_DIR        Target application directory (defaults to /opt/rpi-lab)
+#   BACKUP_DIR     Backup directory (defaults to /opt/backups)
+#
+# Examples:
+#   sudo bash deploy.sh                          # Deploy with backup and prompts
+#   sudo bash deploy.sh --no-backup              # Skip backup creation
+#   sudo bash deploy.sh --hard                   # Force reset local changes
+#   DEPLOY_BRANCH=develop sudo bash deploy.sh   # Deploy specific branch
 set -euo pipefail
 IFS=$'\n\t'
 
