@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Simple RPI TUI launcher for rf tools and system actions.
+"""
+Advanced RPI TUI launcher for RF tools and system actions.
 
 Features:
 - Runs RF setup script (from `rf/`)
 - Reboots the Pi
 - Drops to an interactive shell
-- Designed to run on the console (TTY) and supports touch/mouse events via curses
+- Large text and on-screen buttons (Up, Down, Enter, Cancel)
+- Touch support via evdev (raspberrypi-ts)
+- Designed for console (TTY) on Waveshare DSI display
+
+Requirements:
+- python3-evdev (installed by display_install.sh)
+- Touch device at /dev/input/event0
 """
 
 from __future__ import annotations
@@ -63,35 +70,37 @@ def open_shell():
 
 
 def main_menu(stdscr):
-        # Touch event state
-        touch_action = {"action": None}
-        def touch_thread():
-            if not InputDevice:
-                return
-            try:
-                dev = InputDevice('/dev/input/event0')
-            except Exception as e:
-                logger.warning(f"Touch device not found: {e}")
-                return
-            x, y = 0, 0
-            while True:
-                for event in dev.read_loop():
-                    if event.type == ecodes.EV_ABS:
-                        if event.code == ecodes.ABS_X:
-                            x = event.value
-                        elif event.code == ecodes.ABS_Y:
-                            y = event.value
-                    elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH and event.value == 1:
-                        # Map touch coordinates to button
-                        # Assume display is 800x480, adjust as needed
-                        if 400 < y < 480:
-                            # Button row
-                            btn_width = 200
-                            idx = x // btn_width
-                            if 0 <= idx < len(BUTTONS):
-                                touch_action["action"] = BUTTONS[idx]["action"]
-                time.sleep(0.01)
-        threading.Thread(target=touch_thread, daemon=True).start()
+    # Touch event state
+    touch_action = {"action": None}
+
+    def touch_thread():
+        if not InputDevice:
+            return
+        try:
+            dev = InputDevice('/dev/input/event0')
+        except Exception as e:
+            logger.warning(f"Touch device not found: {e}")
+            return
+        x, y = 0, 0
+        while True:
+            for event in dev.read_loop():
+                if event.type == ecodes.EV_ABS:
+                    if event.code == ecodes.ABS_X:
+                        x = event.value
+                    elif event.code == ecodes.ABS_Y:
+                        y = event.value
+                elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH and event.value == 1:
+                    # Map touch coordinates to button
+                    # Assume display is 800x480, adjust as needed
+                    if 400 < y < 480:
+                        btn_width = 200
+                        idx = x // btn_width
+                        if 0 <= idx < len(BUTTONS):
+                            touch_action["action"] = BUTTONS[idx]["action"]
+            time.sleep(0.01)
+
+    threading.Thread(target=touch_thread, daemon=True).start()
+
     curses.curs_set(0)
     current_row = 0
     while True:
