@@ -26,13 +26,13 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('rpi_tui')
 
+BUTTONS = [
+    {"label": "↑", "action": "up"},
+    {"label": "↓", "action": "down"},
+    {"label": "Enter", "action": "enter"},
+    {"label": "Cancel", "action": "cancel"}
+]
 MENU = [
-    BUTTONS = [
-        {"label": "↑", "action": "up"},
-        {"label": "↓", "action": "down"},
-        {"label": "Enter", "action": "enter"},
-        {"label": "Cancel", "action": "cancel"}
-    ]
     "Run RF Script(s)",
     "Reboot Raspberry Pi",
     "Open Shell (CLI)",
