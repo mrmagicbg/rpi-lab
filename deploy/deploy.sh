@@ -4,8 +4,10 @@
 set -euo pipefail
 IFS=$'\n\t'
 
+# Determine REPO_DIR from script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(dirname "$SCRIPT_DIR")"
 APP_DIR="${APP_DIR:-/opt/rpi-lab}"
-REPO_DIR="${REPO_DIR:-$HOME/rpi-lab}"
 SERVICE_NAME="rpi_tui.service"
 BACKUP_DIR="${BACKUP_DIR:-/opt/backups}"
 DO_BACKUP=1
