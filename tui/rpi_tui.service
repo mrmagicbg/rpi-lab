@@ -10,8 +10,7 @@ Environment=PYTHONUNBUFFERED=1
 # Use venv python when installed to /opt/rpi-lab/.venv
 WorkingDirectory=/opt/rpi-lab/tui
 RestartSec=5
-# Use inline shell to delay then exec the TUI (single ExecStart is required)
-ExecStart=/bin/sh -c 'sleep 10 && exec /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py'
+ExecStart=/bin/sh -lc 'cd /opt/rpi-lab/tui && sleep 10 && exec /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py'
 Restart=on-failure
 StandardInput=tty
 StandardOutput=inherit
