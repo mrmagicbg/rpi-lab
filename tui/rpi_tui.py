@@ -117,10 +117,10 @@ def main_menu(stdscr):
             stdscr.addstr(1, w // 2 - len(title) // 2, title, curses.A_BOLD | curses.A_UNDERLINE)
         except curses.error:
             pass
-        # Draw menu with extra large text and spacing
+        # Draw menu with large text, close together
         for idx, row in enumerate(MENU):
             x = w // 2 - len(row) // 2
-            y = h // 2 - len(MENU) * 3 + idx * 6
+            y = h // 2 - len(MENU) // 2 + idx * 2
             try:
                 if idx == current_row:
                     stdscr.attron(curses.color_pair(1))
@@ -130,14 +130,15 @@ def main_menu(stdscr):
                     stdscr.addstr(y, x, row.upper(), curses.A_BOLD)
             except curses.error:
                 pass
-        # Draw extra large buttons at bottom
-        btn_y = h - 6
+        # Draw much bigger buttons at bottom
+        btn_y = h - 4
         btn_width = w // len(BUTTONS)
         for idx, btn in enumerate(BUTTONS):
             bx = idx * btn_width
             try:
                 stdscr.attron(curses.color_pair(2))
-                stdscr.addstr(btn_y, bx + btn_width // 2 - len(btn["label"]) // 2, btn["label"].center(10), curses.A_BOLD | curses.A_REVERSE)
+                # Make button label very wide and centered
+                stdscr.addstr(btn_y, bx + 1, btn["label"].center(btn_width - 2), curses.A_BOLD | curses.A_REVERSE)
                 stdscr.attroff(curses.color_pair(2))
             except curses.error:
                 pass
