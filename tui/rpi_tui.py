@@ -71,7 +71,7 @@ def open_shell():
 
 def main_menu(stdscr):
     # Touch event state
-    touch_action = {"action": None}
+    touch_action = {"action": None, "x": None, "y": None}
 
     def touch_thread():
         if not InputDevice:
@@ -90,18 +90,23 @@ def main_menu(stdscr):
                 if event.type == ecodes.EV_ABS:
                     if event.code == ecodes.ABS_X:
                         x = event.value
+                        touch_action["x"] = x
                     elif event.code == ecodes.ABS_Y:
                         y = event.value
+                        touch_action["y"] = y
                 elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH and event.value == 1:
                     logger.info(f"Touch at x={x}, y={y}")
+                    touch_action["x"] = x
+                    touch_action["y"] = y
                     # Map touch coordinates to button
-                    # Assume display is 800x480, adjust as needed
-                    if 400 < y < 480:
-                        btn_width = 200
-                        idx = x // btn_width
-                        logger.info(f"Touch mapped to button idx={idx}")
-                        if 0 <= idx < len(BUTTONS):
-                            touch_action["action"] = BUTTONS[idx]["action"]
+                    # Button row: y in last 80 pixels (adjust as needed)
+                    if y is not None and x is not None:
+                        if y > 400:  # For 480px screen, bottom 80px
+                            btn_width = 800 // len(BUTTONS)  # For 800px wide screen
+                            idx = x // btn_width
+                            logger.info(f"Touch mapped to button idx={idx}")
+                            if 0 <= idx < len(BUTTONS):
+                                touch_action["action"] = BUTTONS[idx]["action"]
             time.sleep(0.01)
 
     threading.Thread(target=touch_thread, daemon=True).start()
@@ -130,6 +135,12 @@ def main_menu(stdscr):
                     stdscr.addstr(y, x, row.upper(), curses.A_BOLD)
             except curses.error:
                 pass
+        # Draw debug info for last touch coordinates
+        debug_str = f"Touch X: {touch_action['x']}  Y: {touch_action['y']}"
+        try:
+            stdscr.addstr(2, 2, debug_str, curses.A_DIM)
+        except curses.error:
+            pass
         # Draw much bigger buttons at bottom
         btn_y = h - 4
         btn_width = w // len(BUTTONS)
