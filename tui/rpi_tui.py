@@ -70,8 +70,17 @@ def open_shell():
 
 
 def main_menu(stdscr):
-    # Touch event state
-    touch_action = {"action": None, "x": None, "y": None}
+    # Thread-safe touch state
+    touch_state = {
+        "raw_x": None,
+        "raw_y": None,
+        "pressed": False,
+        "x_min": None,
+        "x_max": None,
+        "y_min": None,
+        "y_max": None,
+    }
+    touch_lock = threading.Lock()
 
     def touch_thread():
         if not InputDevice:
@@ -83,31 +92,39 @@ def main_menu(stdscr):
         except Exception as e:
             logger.warning(f"Touch device not found: {e}")
             return
-        x, y = 0, 0
-        while True:
-            for event in dev.read_loop():
-                logger.debug(f"Touch event: {event}")
-                if event.type == ecodes.EV_ABS:
-                    if event.code == ecodes.ABS_X:
-                        x = event.value
-                        touch_action["x"] = x
-                    elif event.code == ecodes.ABS_Y:
-                        y = event.value
-                        touch_action["y"] = y
-                elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH and event.value == 1:
-                    logger.info(f"Touch at x={x}, y={y}")
-                    touch_action["x"] = x
-                    touch_action["y"] = y
-                    # Map touch coordinates to button
-                    # Button row: y in last 80 pixels (adjust as needed)
-                    if y is not None and x is not None:
-                        if y > 400:  # For 480px screen, bottom 80px
-                            btn_width = 800 // len(BUTTONS)  # For 800px wide screen
-                            idx = x // btn_width
-                            logger.info(f"Touch mapped to button idx={idx}")
-                            if 0 <= idx < len(BUTTONS):
-                                touch_action["action"] = BUTTONS[idx]["action"]
-            time.sleep(0.01)
+
+        # Try to read absolute axis ranges
+        try:
+            xinfo = dev.absinfo(ecodes.ABS_X)
+            yinfo = dev.absinfo(ecodes.ABS_Y)
+            with touch_lock:
+                touch_state['x_min'] = xinfo.min
+                touch_state['x_max'] = xinfo.max
+                touch_state['y_min'] = yinfo.min
+                touch_state['y_max'] = yinfo.max
+            logger.info(f"Touch ranges X: {xinfo.min}..{xinfo.max} Y: {yinfo.min}..{yinfo.max}")
+        except Exception:
+            logger.debug('Could not read ABS ranges; using defaults')
+
+        raw_x, raw_y = 0, 0
+        for event in dev.read_loop():
+            logger.debug(f"Touch event: {event}")
+            if event.type == ecodes.EV_ABS:
+                if event.code == ecodes.ABS_X:
+                    raw_x = event.value
+                    with touch_lock:
+                        touch_state['raw_x'] = raw_x
+                elif event.code == ecodes.ABS_Y:
+                    raw_y = event.value
+                    with touch_lock:
+                        touch_state['raw_y'] = raw_y
+            elif event.type == ecodes.EV_KEY and event.code == ecodes.BTN_TOUCH:
+                # value 1 = press, 0 = release
+                pressed = bool(event.value)
+                with touch_lock:
+                    touch_state['pressed'] = pressed
+                logger.info(f"Touch {'pressed' if pressed else 'released'} raw_x={raw_x} raw_y={raw_y}")
+            # loop continues reading events
 
     threading.Thread(target=touch_thread, daemon=True).start()
 
@@ -135,10 +152,64 @@ def main_menu(stdscr):
                     stdscr.addstr(y, x, row.upper(), curses.A_BOLD)
             except curses.error:
                 pass
-        # Draw debug info for last touch coordinates
-        debug_str = f"Touch X: {touch_action['x']}  Y: {touch_action['y']}"
+        # Draw boxed debug area for touch info
+        dbg_h, dbg_w = 5, 38
         try:
-            stdscr.addstr(2, 2, debug_str, curses.A_DIM)
+            dbg_x = 2
+            dbg_y = 2
+            # box border
+            stdscr.attron(curses.A_DIM)
+            for bx in range(dbg_w):
+                stdscr.addch(dbg_y, dbg_x + bx, ' ')
+                stdscr.addch(dbg_y + dbg_h - 1, dbg_x + bx, ' ')
+            for by in range(dbg_h):
+                stdscr.addch(dbg_y + by, dbg_x, ' ')
+                stdscr.addch(dbg_y + by, dbg_x + dbg_w - 1, ' ')
+            stdscr.attroff(curses.A_DIM)
+        except curses.error:
+            pass
+
+        # Read touch_state safely
+        with touch_lock:
+            raw_x = touch_state.get('raw_x')
+            raw_y = touch_state.get('raw_y')
+            pressed = touch_state.get('pressed')
+            x_min = touch_state.get('x_min')
+            x_max = touch_state.get('x_max')
+            y_min = touch_state.get('y_min')
+            y_max = touch_state.get('y_max')
+
+        # Scale raw to terminal coords if possible
+        scaled_x = None
+        scaled_y = None
+        if raw_x is not None and x_min is not None and x_max and raw_y is not None and y_min is not None and y_max:
+            try:
+                scaled_x = int((raw_x - x_min) * (w - 1) / (x_max - x_min))
+                scaled_y = int((raw_y - y_min) * (h - 1) / (y_max - y_min))
+            except Exception:
+                scaled_x = None
+                scaled_y = None
+        else:
+            # fallback heuristics: assume raw range 0..32767
+            if raw_x is not None:
+                try:
+                    scaled_x = int(raw_x * (w - 1) / 32767)
+                except Exception:
+                    scaled_x = None
+            if raw_y is not None:
+                try:
+                    scaled_y = int(raw_y * (h - 1) / 32767)
+                except Exception:
+                    scaled_y = None
+
+        dbg_lines = [
+            f"rawX:{raw_x} rawY:{raw_y}",
+            f"sclX:{scaled_x} sclY:{scaled_y}",
+            f"pressed:{pressed}"
+        ]
+        try:
+            for i, line in enumerate(dbg_lines):
+                stdscr.addstr(dbg_y + 1 + i, dbg_x + 1, line.ljust(dbg_w - 2), curses.A_DIM)
         except curses.error:
             pass
         # Draw much bigger buttons at bottom
@@ -169,25 +240,29 @@ def main_menu(stdscr):
                 open_shell()
             elif current_row == 3:
                 break
-        # Handle touch actions
-        if touch_action["action"]:
-            logger.info(f"Touch action: {touch_action['action']}")
-            if touch_action["action"] == "up" and current_row > 0:
-                current_row -= 1
-            elif touch_action["action"] == "down" and current_row < len(MENU) - 1:
-                current_row += 1
-            elif touch_action["action"] == "enter":
-                if current_row == 0:
-                    run_rf_script()
-                elif current_row == 1:
-                    reboot_pi()
-                elif current_row == 2:
-                    open_shell()
-                elif current_row == 3:
-                    break
-            elif touch_action["action"] == "cancel":
-                break
-            touch_action["action"] = None
+        # Handle touch press -> map to buttons using scaled coords
+        if pressed and scaled_x is not None and scaled_y is not None:
+            # consider button row at bottom 3 rows of terminal
+            if scaled_y >= (h - 3):
+                idx = int(scaled_x * len(BUTTONS) / max(1, w))
+                if 0 <= idx < len(BUTTONS):
+                    action = BUTTONS[idx]['action']
+                    logger.info(f"Touch button idx={idx} action={action}")
+                    if action == 'up' and current_row > 0:
+                        current_row -= 1
+                    elif action == 'down' and current_row < len(MENU) - 1:
+                        current_row += 1
+                    elif action == 'enter':
+                        if current_row == 0:
+                            run_rf_script()
+                        elif current_row == 1:
+                            reboot_pi()
+                        elif current_row == 2:
+                            open_shell()
+                        elif current_row == 3:
+                            break
+                    elif action == 'cancel':
+                        break
 
 
 def setup_curses():

@@ -57,3 +57,23 @@ python /opt/rpi-lab/tui/rpi_tui.py
 ```
 
 If you want additional features (logging, user selection, network checks), open an issue or request in the repo.
+
+Touch testing & calibration
+---------------------------
+
+- The TUI now includes a debug area showing raw and scaled touch coordinates and press state.
+- Install `evtest` to verify the device produces events:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y evtest
+sudo evtest /dev/input/event0
+```
+
+- Run the TUI directly to see the debug area on the console:
+
+```bash
+sudo /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py
+```
+
+- If touch coordinates look large (e.g. 0..32767), the TUI will auto-scale them. If mapping is off, note the raw X/Y values shown in the debug area and I can help tune the scaling constants.
