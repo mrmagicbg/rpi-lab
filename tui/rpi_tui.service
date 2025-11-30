@@ -4,7 +4,7 @@ After=network.target
 
 [Service]
 Type=simple
-User=pi
+# Run as root (no User directive)
 Environment=PYTHONUNBUFFERED=1
 # Use venv python when installed to /opt/rpi-lab/.venv
 ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py
