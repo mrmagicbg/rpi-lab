@@ -117,26 +117,28 @@ GUI Features
 
 The GUI application provides an intuitive touch interface optimized for the Waveshare 4.3" 800×480 display:
 
-### Main Menu Buttons
+### Layout
 
-- **🔧 Run RF Script(s)** - Execute CC1101 RF configuration scripts
-- **🌡️ Sensor Readings** - Display real-time DHT22 temperature & humidity
-- **🔄 Reboot Raspberry Pi** - System reboot with confirmation dialog
-- **💻 Open Shell (Terminal)** - Launch xterm terminal window
-- **❌ Exit** - Close GUI application with confirmation
+**Integrated Sensor Display** (top section):
+- Real-time temperature (°C) and humidity (%) readings
+- Auto-updates every 5 seconds from DHT22 sensor
+- Status line shows last update time or connection warnings
+
+**4 Uniform Touch Buttons** (bottom section):
+- **🔧 Run RF Script(s)** - Execute CC1101 RF configuration scripts (Blue)
+- **🔄 Reboot System** - System reboot with confirmation dialog (Red)
+- **💻 Open Terminal** - Launch xterm terminal window (Green)
+- **❌ Exit Application** - Close GUI with confirmation (Gray)
 
 ### Design Features
 
-- **Large Touch Targets**: All buttons are 100px+ tall for easy touch interaction
-- **Color-Coded Interface**: Different colors for different action types
-  - Blue: RF operations
-  - Orange: Sensor monitoring
-  - Red: System actions (reboot)
-  - Green: Shell access
-  - Gray: Exit
-- **Confirmation Dialogs**: Destructive actions require confirmation
+- **Uniform Touch Targets**: All 4 buttons identical size for consistent touch experience
+- **Persistent Sensor Display**: Temperature and humidity always visible (no popup needed)
+- **Auto-Refresh**: Sensor readings update automatically every 5 seconds
+- **Color-Coded Interface**: Different colors help identify button functions quickly
+- **Confirmation Dialogs**: Destructive actions (reboot, exit) require confirmation
 - **Fullscreen Mode**: F11 to toggle, Escape to exit (keyboard shortcuts)
-- **Auto-start**: Launches automatically on boot via systemd
+- **Auto-start**: Launches automatically on boot via systemd service
 
 DHT22 Sensor Setup
 ------------------

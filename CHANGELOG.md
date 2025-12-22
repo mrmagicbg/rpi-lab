@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.1] - 2025-12-22
+### Changed
+- **GUI Layout Redesign**
+  - All touch buttons now uniform size for consistent touch experience
+  - Sensor readings moved to main screen (auto-updates every 5 seconds)
+  - Temperature and humidity displayed prominently above buttons
+  - 4 main buttons: RF Script, Reboot, Terminal, Exit (all same size)
+  - Improved visual hierarchy and touch targets
+
+- **Installation Scripts**
+  - Updated `venv_setup.sh` to install system dependencies for DHT22 (python3-dev, build-essential)
+  - Added automatic Adafruit-DHT installation with --force-pi flag
+  - Better error handling and progress messages
+
+### Fixed
+- Sensor readings now update automatically without button press
+- Exit button always visible on main screen
+- Consistent button sizing eliminates touch target confusion
+
 ## [0.3.0] - 2025-12-22
 ### Added
 - **DHT22 Temperature & Humidity Sensor Support**

@@ -3,8 +3,8 @@
 RPI GUI launcher for RF tools, sensor monitoring, and system actions.
 
 Features:
-- Large touch-friendly buttons (800x480 Waveshare 4.3" DSI display)
-- DHT22 temperature and humidity sensor readings
+- Large uniform touch-friendly buttons (800x480 Waveshare 4.3" DSI display)
+- Live DHT22 temperature and humidity sensor display
 - Runs RF setup script (from `rf/`)
 - Reboots the Pi
 - Drops to an interactive shell in a terminal
@@ -60,97 +60,164 @@ class RPILauncherGUI:
         # Dark theme with large, touch-friendly elements
         self.root.configure(bg='#1e1e1e')
         
+        # Main container
+        main_frame = tk.Frame(self.root, bg='#1e1e1e')
+        main_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
         # Title label
         title = tk.Label(
-            self.root,
+            main_frame,
             text="RPI Lab Control Panel",
-            font=('Arial', 28, 'bold'),
+            font=('Arial', 24, 'bold'),
             fg='#00ff88',
             bg='#1e1e1e',
-            pady=20
+            pady=10
         )
         title.pack()
         
-        # Button container frame
-        button_frame = tk.Frame(self.root, bg='#1e1e1e')
-        button_frame.pack(expand=True, fill='both', padx=30, pady=10)
+        # Sensor display area
+        self.sensor_frame = tk.Frame(main_frame, bg='#2d2d2d', relief='raised', bd=3)
+        self.sensor_frame.pack(fill='x', padx=10, pady=10)
         
-        # Large touch buttons (each ~100px tall minimum)
+        sensor_title = tk.Label(
+            self.sensor_frame,
+            text="DHT22 Sensor (GPIO4)",
+            font=('Arial', 14, 'bold'),
+            fg='#00ff88',
+            bg='#2d2d2d',
+            pady=5
+        )
+        sensor_title.pack()
+        
+        # Sensor readings container
+        sensor_data_frame = tk.Frame(self.sensor_frame, bg='#2d2d2d')
+        sensor_data_frame.pack(pady=5)
+        
+        # Temperature display
+        temp_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        temp_container.pack(side='left', padx=20)
+        
+        tk.Label(
+            temp_container,
+            text="🌡️ Temp:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+        
+        self.temp_label = tk.Label(
+            temp_container,
+            text="--°C",
+            font=('Arial', 20, 'bold'),
+            fg='#ff6b6b',
+            bg='#2d2d2d'
+        )
+        self.temp_label.pack()
+        
+        # Humidity display
+        humid_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        humid_container.pack(side='left', padx=20)
+        
+        tk.Label(
+            humid_container,
+            text="💧 Humidity:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+        
+        self.humid_label = tk.Label(
+            humid_container,
+            text="--%",
+            font=('Arial', 20, 'bold'),
+            fg='#4ecdc4',
+            bg='#2d2d2d'
+        )
+        self.humid_label.pack()
+        
+        # Status label
+        self.sensor_status = tk.Label(
+            self.sensor_frame,
+            text="Initializing sensor...",
+            font=('Arial', 9),
+            fg='#888888',
+            bg='#2d2d2d',
+            pady=5
+        )
+        self.sensor_status.pack()
+        
+        # Button container frame
+        button_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        button_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # UNIFORM touch buttons - all same size
         button_config = {
-            'font': ('Arial', 20, 'bold'),
-            'width': 25,
+            'font': ('Arial', 18, 'bold'),
+            'width': 20,
             'height': 2,
             'relief': 'raised',
-            'bd': 5,
-            'bg': '#2d89ef',
-            'fg': 'white',
-            'activebackground': '#1e5fa8',
-            'activeforeground': 'white'
+            'bd': 4,
+            'fg': 'white'
         }
         
-        # Menu buttons matching TUI functionality
+        # Menu buttons - all uniform size
         btn_rf = tk.Button(
             button_frame,
             text="🔧 Run RF Script(s)",
             command=self.run_rf_script,
+            bg='#2d89ef',
+            activebackground='#1e5fa8',
             **button_config
         )
-        btn_rf.pack(pady=10, fill='x')
-        
-        btn_sensors = tk.Button(
-            button_frame,
-            text="🌡️ Sensor Readings",
-            command=self.show_sensors,
-            bg='#ff8c00',
-            activebackground='#cc6600',
-            **{k: v for k, v in button_config.items() if k not in ['bg', 'activebackground']}
-        )
-        btn_sensors.pack(pady=10, fill='x')
+        btn_rf.pack(pady=5, fill='x')
         
         btn_reboot = tk.Button(
             button_frame,
-            text="🔄 Reboot Raspberry Pi",
+            text="🔄 Reboot System",
             command=self.reboot_pi,
             bg='#e81123',
             activebackground='#a50011',
-            **{k: v for k, v in button_config.items() if k not in ['bg', 'activebackground']}
+            **button_config
         )
-        btn_reboot.pack(pady=10, fill='x')
+        btn_reboot.pack(pady=5, fill='x')
         
         btn_shell = tk.Button(
             button_frame,
-            text="💻 Open Shell (Terminal)",
+            text="💻 Open Terminal",
             command=self.open_shell,
             bg='#00a300',
             activebackground='#007000',
-            **{k: v for k, v in button_config.items() if k not in ['bg', 'activebackground']}
+            **button_config
         )
-        btn_shell.pack(pady=10, fill='x')
+        btn_shell.pack(pady=5, fill='x')
         
         btn_exit = tk.Button(
             button_frame,
-            text="❌ Exit",
+            text="❌ Exit Application",
             command=self.exit_app,
             bg='#555555',
             activebackground='#333333',
-            **{k: v for k, v in button_config.items() if k not in ['bg', 'activebackground']}
+            **button_config
         )
-        btn_exit.pack(pady=10, fill='x')
+        btn_exit.pack(pady=5, fill='x')
         
         # Footer with instructions
         footer = tk.Label(
             self.root,
-            text="Touch buttons to perform actions • Press F11 to toggle fullscreen",
-            font=('Arial', 10),
-            fg='#888888',
+            text="Touch buttons to perform actions • F11: fullscreen • ESC: exit",
+            font=('Arial', 9),
+            fg='#666666',
             bg='#1e1e1e',
-            pady=10
+            pady=5
         )
         footer.pack(side='bottom')
         
         # Keyboard shortcuts
         self.root.bind('<F11>', self.toggle_fullscreen)
         self.root.bind('<Escape>', lambda e: self.exit_app())
+        
+        # Start sensor update loop
+        self.update_sensor_readings()
         
         logger.info("GUI initialized successfully")
     
@@ -181,137 +248,39 @@ class RPILauncherGUI:
             logger.error(f"Failed to run RF script: {e}")
             messagebox.showerror("Error", f"Failed to run RF script:\n{e}")
     
-    def show_sensors(self):
-        """Display DHT22 sensor readings in a popup window"""
-        logger.info("Sensor Readings button pressed")
-        
-        # Create popup window
-        sensor_window = tk.Toplevel(self.root)
-        sensor_window.title("Sensor Readings")
-        sensor_window.geometry("700x500")
-        sensor_window.configure(bg='#1e1e1e')
-        sensor_window.transient(self.root)
-        sensor_window.grab_set()
-        
-        # Title
-        title = tk.Label(
-            sensor_window,
-            text="DHT22 Sensor Readings",
-            font=('Arial', 24, 'bold'),
-            fg='#00ff88',
-            bg='#1e1e1e',
-            pady=20
-        )
-        title.pack()
-        
-        # Sensor data frame
-        data_frame = tk.Frame(sensor_window, bg='#2d2d2d', relief='raised', bd=3)
-        data_frame.pack(padx=30, pady=20, fill='both', expand=True)
-        
-        # Temperature label
-        temp_label = tk.Label(
-            data_frame,
-            text="Temperature:",
-            font=('Arial', 18, 'bold'),
-            fg='#ffffff',
-            bg='#2d2d2d',
-            pady=10
-        )
-        temp_label.pack()
-        
-        temp_value = tk.Label(
-            data_frame,
-            text="Reading...",
-            font=('Arial', 36, 'bold'),
-            fg='#ff6b6b',
-            bg='#2d2d2d',
-            pady=5
-        )
-        temp_value.pack()
-        
-        # Humidity label
-        humid_label = tk.Label(
-            data_frame,
-            text="Humidity:",
-            font=('Arial', 18, 'bold'),
-            fg='#ffffff',
-            bg='#2d2d2d',
-            pady=10
-        )
-        humid_label.pack()
-        
-        humid_value = tk.Label(
-            data_frame,
-            text="Reading...",
-            font=('Arial', 36, 'bold'),
-            fg='#4ecdc4',
-            bg='#2d2d2d',
-            pady=5
-        )
-        humid_value.pack()
-        
-        # Status label
-        status_label = tk.Label(
-            data_frame,
-            text="",
-            font=('Arial', 12),
-            fg='#888888',
-            bg='#2d2d2d',
-            pady=10
-        )
-        status_label.pack()
-        
-        # Read sensor
-        def update_readings():
+    def update_sensor_readings(self):
+        """Update sensor readings on main screen (called periodically)"""
+        try:
             temp_str, humid_str = DHT_SENSOR.read_formatted()
-            temp_value.config(text=temp_str)
-            humid_value.config(text=humid_str)
+            self.temp_label.config(text=temp_str)
+            self.humid_label.config(text=humid_str)
             
             if temp_str == "N/A":
-                status_label.config(
-                    text="⚠️ Sensor not connected or reading failed\n(GPIO4, physical pin 7)",
+                self.sensor_status.config(
+                    text="⚠️ Sensor not connected (check GPIO4 wiring)",
                     fg='#ffaa00'
                 )
             else:
-                status_label.config(
-                    text="✓ Sensor reading successful (GPIO4)",
-                    fg='#00ff88'
+                self.sensor_status.config(
+                    text="✓ Last updated: " + self.get_current_time(),
+                    fg='#00aa00'
                 )
+        except Exception as e:
+            logger.error(f"Sensor update error: {e}")
+            self.temp_label.config(text="Error")
+            self.humid_label.config(text="Error")
+            self.sensor_status.config(
+                text="⚠️ Sensor error",
+                fg='#ff0000'
+            )
         
-        # Refresh button
-        refresh_btn = tk.Button(
-            sensor_window,
-            text="🔄 Refresh",
-            command=update_readings,
-            font=('Arial', 16, 'bold'),
-            bg='#2d89ef',
-            fg='white',
-            activebackground='#1e5fa8',
-            width=15,
-            height=1,
-            relief='raised',
-            bd=3
-        )
-        refresh_btn.pack(pady=10)
-        
-        # Close button
-        close_btn = tk.Button(
-            sensor_window,
-            text="✕ Close",
-            command=sensor_window.destroy,
-            font=('Arial', 16, 'bold'),
-            bg='#555555',
-            fg='white',
-            activebackground='#333333',
-            width=15,
-            height=1,
-            relief='raised',
-            bd=3
-        )
-        close_btn.pack(pady=5)
-        
-        # Initial reading
-        update_readings()
+        # Schedule next update in 5 seconds
+        self.root.after(5000, self.update_sensor_readings)
+    
+    def get_current_time(self):
+        """Get current time string"""
+        from datetime import datetime
+        return datetime.now().strftime("%H:%M:%S")
     
     def reboot_pi(self):
         """Reboot the Raspberry Pi after confirmation"""
