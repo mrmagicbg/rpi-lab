@@ -6,18 +6,21 @@ Overview
 RPI Lab collects small utilities and helpers targeting Raspberry Pi devices:
 
 - `rf/` — RF-related code and Pi setup for CC1101 projects
-- `display/` — Display and touchscreen setup scripts (Waveshare panels)
-- `tui/` — Console (TUI) application and systemd service that runs on boot
+- `display/` — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
+- `tui/` — Console (TUI) application and systemd service (legacy, runs on tty1)
+- `gui/` — **GUI application with large touch buttons** (recommended for Waveshare display)
 
-This README provides a Quickstart, detailed install steps, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
+This README provides a Quickstart, detailed install steps, GUI vs TUI modes, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
 
 Table of Contents
 -----------------
 
 - Quickstart
 - Installation (detailed)
+- **GUI Mode vs TUI Mode**
 - Service management
 - Touch testing & debugging
+- Display + touch: known-good configuration (Waveshare 4.3" DSI Rev 2.2)
 - Troubleshooting
 - Contributing
 
@@ -61,29 +64,51 @@ The deployment script includes safety features:
 Installation (detailed)
 -----------------------
 
-See the `install/` folder for small helper scripts that setup the virtualenv (`venv_setup.sh`), **Waveshare 4.3" DSI LCD Rev 2.2 display + touch** (`display_install.sh`) and service installation (`install_service.sh`). Typical steps:
+See the `install/` folder for helper scripts:
+- `venv_setup.sh` — Python virtualenv + dependencies (evdev, rich, loguru, tkinter via system)
+- `display_install.sh` — Waveshare 4.3" DSI LCD Rev 2.2 display + touch overlays
+- `install_gui.sh` — **GUI mode** (X11, openbox, python3-tk, auto-login)
+- `install_service.sh` — **TUI mode** (legacy console interface on tty1)
+
+### Recommended: GUI Mode Installation
 
 1. Prepare the Pi and install system packages
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git python3 python3-venv python3-pip
+sudo apt install -y git python3 python3-venv python3-pip rsync
 ```
 
-2. Clone and copy into `/opt` (optional):
+2. Clone and copy into `/opt`:
 
 ```bash
 git clone https://github.com/mrmagicbg/rpi-lab.git ~/rpi-lab
 sudo rsync -a --chown=root:root ~/rpi-lab/ /opt/rpi-lab/
 ```
 
-3. Run the helper scripts (provided under `install/`):
+3. Run the helper scripts:
 
 ```bash
 sudo /opt/rpi-lab/install/venv_setup.sh
 sudo /opt/rpi-lab/install/display_install.sh    # Waveshare 4.3" DSI Rev 2.2 display + touch
-sudo /opt/rpi-lab/install/install_rf.sh         # RF hardware setup (optional)
-sudo /opt/rpi-lab/install/install_service.sh    # install and enable TUI systemd unit
+sudo /opt/rpi-lab/install/install_gui.sh         # GUI mode with large touch buttons
+```
+
+4. Reboot to start GUI on boot:
+
+```bash
+sudo reboot
+```
+
+### Alternative: TUI Mode Installation (Console Only)
+
+If you prefer the lightweight console interface (no X11), install TUI mode instead:
+
+```bash
+sudo /opt/rpi-lab/install/venv_setup.sh
+sudo /opt/rpi-lab/install/display_install.sh
+sudo /opt/rpi-lab/install/install_service.sh    # TUI mode on tty1
+sudo reboot
 ```
 
 Or use the deployment script for full redeployment (recommended for updates):
@@ -102,10 +127,89 @@ sudo bash /opt/rpi-lab/deploy/deploy.sh [--no-backup] [--hard] [--dry-run]
 - **Smart Repo Detection**: Automatically finds repo location from script path
 - **Service Management**: Handles systemd reload and service restart
 
+GUI Mode vs TUI Mode
+--------------------
+
+RPI Lab supports **two interface modes**:
+
+### **GUI Mode (Recommended for Waveshare 4.3" DSI)**
+
+- **Large touch-friendly buttons** optimized for 800×480 touchscreen
+- Runs in X11 with openbox window manager
+- Auto-starts on boot via LightDM display manager
+- Better visibility and easier touch interaction
+- Service: `rpi_gui.service`
+
+**Install GUI mode:**
+
+```bash
+sudo /opt/rpi-lab/install/install_gui.sh
+sudo reboot
+```
+
+**Features:**
+- 🔧 Run RF Script(s)
+- 🔄 Reboot Raspberry Pi (with confirmation dialog)
+- 💻 Open Shell (launches xterm)
+- ❌ Exit
+
+**GUI service commands:**
+
+```bash
+sudo systemctl status rpi_gui.service
+sudo journalctl -u rpi_gui.service -f
+sudo systemctl restart rpi_gui.service
+```
+
+### **TUI Mode (Legacy, Console-only)**
+
+- Text-based curses interface on tty1
+- No X11 required (lighter weight)
+- Harder to use with touch (small hit targets)
+- Service: `rpi_tui.service`
+
+**Install TUI mode:**
+
+```bash
+sudo /opt/rpi-lab/install/install_service.sh
+sudo reboot
+```
+
+**Switch between modes:**
+
+```bash
+# Switch to GUI mode
+sudo systemctl disable rpi_tui.service
+sudo systemctl enable rpi_gui.service
+sudo reboot
+
+# Switch to TUI mode
+sudo systemctl disable rpi_gui.service
+sudo systemctl enable rpi_tui.service
+sudo reboot
+```
+
+**Note:** Only one mode should be enabled at a time to avoid conflicts.
+
 Service management
 ------------------
 
-The TUI runs as a systemd service defined in `tui/rpi_tui.service` and defaults to running on `tty1`.
+### GUI Service (rpi_gui.service)
+
+Runs the GUI application in X11 after graphical.target.
+
+Common commands:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now rpi_gui.service
+sudo systemctl status rpi_gui.service -l
+sudo journalctl -xeu rpi_gui.service --no-pager
+```
+
+### TUI Service (rpi_tui.service)
+
+Runs the TUI application on `tty1` (console only, no X11).
 
 Common commands:
 
@@ -116,7 +220,7 @@ sudo systemctl status rpi_tui.service -l
 sudo journalctl -xeu rpi_tui.service --no-pager
 ```
 
-If you change the unit file, run `sudo systemctl daemon-reload` before restarting or enabling.
+If you change a unit file, run `sudo systemctl daemon-reload` before restarting or enabling.
 
 Touch testing & debugging
 -------------------------

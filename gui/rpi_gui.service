@@ -1,0 +1,23 @@
+[Unit]
+Description=RPI Lab GUI Application (X11/Wayland)
+After=graphical.target network-online.target
+Wants=graphical.target
+
+[Service]
+Type=simple
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/mrmagic/.Xauthority"
+Environment="PYTHONUNBUFFERED=1"
+ExecStartPre=/bin/sleep 5
+ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_gui.py
+Restart=on-failure
+RestartSec=10
+User=mrmagic
+WorkingDirectory=/opt/rpi-lab/gui
+
+# Allow reboot via sudo without password
+# Add to /etc/sudoers.d/rpi-lab:
+#   mrmagic ALL=(ALL) NOPASSWD: /sbin/reboot
+
+[Install]
+WantedBy=graphical.target
