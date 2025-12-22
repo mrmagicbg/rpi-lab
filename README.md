@@ -164,6 +164,16 @@ git clone https://github.com/mrmagicbg/rpi-lab.git rpi-lab-recovered
 rsync -av --exclude='.git' rpi-lab/ rpi-lab-recovered/
 ```
 
+Touch device detection failures (ft5x06 timeout):
+
+- **Symptom:** `edt_ft5x06 10-0038: probe with driver edt_ft5x06 failed with error -110`
+- **Cause:** IRQ-driven probe timing out on interrupt line initialization
+- **Solution:** Run the touch device fix script:
+  ```bash
+  sudo bash /opt/rpi-lab/display/fix_touch_detection.sh
+  ```
+  This adds the `edt-ft5406` overlay with `polling_mode` parameter, allowing the device to be detected via polling instead of interrupts.
+
 Service start failures (tty or permissions):
 
 - Check `sudo journalctl -xeu rpi_tui.service` for Python tracebacks or permission errors.
