@@ -13,6 +13,7 @@ import subprocess
 import threading
 import queue
 import time
+import signal
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 from datetime import datetime
@@ -194,20 +195,24 @@ class TPMSMonitorGUI:
         self.log("Starting TPMS capture (433.92 MHz, mode TPMS)...", "INFO")
         
         try:
-            # Start rx_profile_demo in TPMS mode
+            # Start rx_profile_demo in TPMS mode (non-interactive sudo)
             self.rx_process = subprocess.Popen(
-                ['sudo', rx_binary, '-mTPMS'],
+                ['sudo', '-n', rx_binary, '-mTPMS'],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                stdin=subprocess.DEVNULL,
                 universal_newlines=True,
-                bufsize=1
+                bufsize=1,
+                preexec_fn=os.setsid  # own process group for clean kill
             )
-            
-            # Start reader thread
+
+            # Mark monitoring active
             self.is_monitoring = True
+
+            # Start reader thread
             reader_thread = threading.Thread(target=self._read_rx_output, daemon=True)
             reader_thread.start()
-            
+
             self.start_btn.config(state='disabled')
             self.stop_btn.config(state='normal')
             self.status_label.config(text="📡 Monitoring...", fg='#00ff00')
@@ -226,10 +231,18 @@ class TPMSMonitorGUI:
         
         if self.rx_process:
             try:
-                self.rx_process.terminate()
+                # Terminate entire process group (sudo + rx_profile_demo)
+                pgid = os.getpgid(self.rx_process.pid)
+                os.killpg(pgid, signal.SIGTERM)
                 self.rx_process.wait(timeout=2)
             except subprocess.TimeoutExpired:
-                self.rx_process.kill()
+                try:
+                    pgid = os.getpgid(self.rx_process.pid)
+                    os.killpg(pgid, signal.SIGKILL)
+                except Exception:
+                    pass
+            except Exception as e:
+                self.log(f"Error stopping capture: {e}", "ERROR")
             self.rx_process = None
         
         self.start_btn.config(state='normal')
@@ -259,6 +272,19 @@ class TPMSMonitorGUI:
             logger.error(f"RX reader error: {e}")
         finally:
             self.is_monitoring = False
+            # Ensure UI reflects stopped state
+            self.root.after(0, self._on_capture_stopped)
+
+    def _on_capture_stopped(self):
+        """Update UI when capture stops (by user or error)"""
+        self.start_btn.config(state='normal')
+        self.stop_btn.config(state='disabled')
+        # If process died unexpectedly, show warning
+        if self.rx_process is not None and self.rx_process.poll() not in (None, 0):
+            self.status_label.config(text="⚠️ Capture stopped (error)", fg='#ff9900')
+            self.log("Capture process exited with error. Check SPI wiring and sudo permissions.", "ERROR")
+        else:
+            self.status_label.config(text="⏸️ Stopped", fg='#999999')
     
     def _parse_rx_line(self, line: str):
         """Parse a line from rx_profile_demo output"""

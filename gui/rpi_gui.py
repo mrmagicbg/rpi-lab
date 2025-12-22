@@ -154,7 +154,7 @@ class RPILauncherGUI:
         button_config = {
             'font': ('Arial', 18, 'bold'),
             'width': 20,
-            'height': 2,
+            'height': 1,
             'relief': 'raised',
             'bd': 4,
             'fg': 'white'
@@ -193,7 +193,7 @@ class RPILauncherGUI:
         
         btn_exit = tk.Button(
             button_frame,
-            text="❌ Exit Application",
+            text="❌ Exit to Desktop",
             command=self.exit_app,
             bg='#555555',
             activebackground='#333333',
@@ -317,7 +317,10 @@ class RPILauncherGUI:
         logger.info("Exit button pressed")
         if messagebox.askyesno("Confirm Exit", "Exit RPI Lab GUI?"):
             logger.info("Exit confirmed")
-            self.root.quit()
+            try:
+                self.root.destroy()
+            finally:
+                sys.exit(0)
     
     def toggle_fullscreen(self, event=None):
         """Toggle fullscreen mode"""

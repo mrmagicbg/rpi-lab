@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.1] - 2025-12-22
+### Fixed
+- **TPMS Monitor Stop Button**
+  - Ensure RF capture process (sudo + rx_profile_demo) is terminated via process group
+  - UI now reliably returns to "Stopped" state when capture ends
+  - Added error logging when capture process exits unexpectedly (sudo/SPI issues)
+
+- **Main GUI Exit Behavior**
+  - Exit button label clarified to "❌ Exit to Desktop"
+  - Exit now destroys the Tk window and exits the process cleanly
+  - Helps ensure the user is returned to the Pi desktop when leaving the GUI
+
+### Changed
+- **Button Layout Tweaks**
+  - Slightly reduced button height to keep all four buttons visible on the 800×480 display
+  - No change to overall layout: TPMS Monitor, Reboot, Terminal, Exit
+
 ## [0.4.0] - 2025-12-22
 ### Added
 - **TPMS (Tire Pressure Monitoring System) Support**
