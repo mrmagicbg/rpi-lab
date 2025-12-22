@@ -91,13 +91,6 @@ echo "[install_gui] Enabling rpi_gui service..."
 systemctl daemon-reload
 systemctl enable rpi_gui.service
 
-# Disable TUI service if it's running (they conflict)
-if systemctl is-enabled rpi_tui.service >/dev/null 2>&1; then
-    echo "[install_gui] Disabling rpi_tui.service (conflicts with GUI mode)..."
-    systemctl disable rpi_tui.service
-    systemctl stop rpi_tui.service || true
-fi
-
 cat << 'EOF'
 
 [install_gui] GUI installation complete!
@@ -120,12 +113,5 @@ Next steps:
   
   4. To check GUI logs:
        journalctl -u rpi_gui.service -f
-
-Notes:
-  - TUI mode (rpi_tui.service) has been disabled
-  - To switch back to TUI mode, run:
-      sudo systemctl disable rpi_gui.service
-      sudo systemctl enable rpi_tui.service
-      sudo reboot
 
 EOF

@@ -1,6 +1,0 @@
-# Optional runtime dependencies for the TUI
-# `curses` is part of the standard library on Linux (ncurses)
-# Touch input is provided by `evdev`.
-rich==13.3.0
-loguru==0.7.0
-evdev==1.9.2

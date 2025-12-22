@@ -3,21 +3,24 @@
 Overview
 --------
 
-RPI Lab collects small utilities and helpers targeting Raspberry Pi devices:
+RPI Lab collects utilities and helpers for Raspberry Pi devices with integrated hardware support:
 
 - `rf/` — RF-related code and Pi setup for CC1101 projects
 - `display/` — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
-- `tui/` — Console (TUI) application and systemd service (legacy, runs on tty1)
-- `gui/` — **GUI application with large touch buttons** (recommended for Waveshare display)
+- `gui/` — **GUI application with large touch buttons** for Waveshare display
+- `sensors/` — **DHT22 temperature & humidity sensor support**
+- `deploy/` — GitHub-based deployment scripts for easy updates
 
-This README provides a Quickstart, detailed install steps, GUI vs TUI modes, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
+This README provides Quickstart, detailed install steps, sensor configuration, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
 
 Table of Contents
 -----------------
 
 - Quickstart
 - Installation (detailed)
-- **GUI Mode vs TUI Mode**
+- GUI Features
+- DHT22 Sensor Setup
+- GitHub Deployment Workflow
 - Service management
 - Touch testing & debugging
 - Display + touch: known-good configuration (Waveshare 4.3" DSI Rev 2.2)
@@ -34,43 +37,38 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y git python3 python3-venv python3-pip rsync
 ```
 
-2) Clone the repo into your home directory (developer mode):
+2) Clone the repo into your home directory:
 
 ```bash
 git clone https://github.com/mrmagicbg/rpi-lab.git ~/rpi-lab
 ```
 
-3) Optional: move to `/opt` for system-wide installs and run the helpers:
+3) Copy to `/opt` for system-wide install and run the helpers:
 
 ```bash
-sudo mkdir -p /opt/rpi-lab
 sudo rsync -a --chown=root:root ~/rpi-lab/ /opt/rpi-lab/
-sudo /opt/rpi-lab/install/venv_setup.sh
-sudo /opt/rpi-lab/install/install_service.sh
+sudo /opt/rpi-lab/install/venv_setup.sh         # Python virtualenv + dependencies
+sudo /opt/rpi-lab/install/display_install.sh    # Waveshare display + touch
+sudo /opt/rpi-lab/install/install_gui.sh        # GUI mode with auto-start
+sudo reboot
 ```
 
-Or use the deployment script for full redeployment (recommended):
+Or use the deployment script for full redeployment:
 
 ```bash
 sudo bash ~/rpi-lab/deploy/deploy.sh
 ```
 
-The deployment script includes safety features:
-- Prompts for branch confirmation to prevent accidental deployments
-- Creates backups of existing installations
-- Supports dry-run mode for testing
-- Handles venv recreation and service restarts
-
 Installation (detailed)
 -----------------------
 
 See the `install/` folder for helper scripts:
-- `venv_setup.sh` — Python virtualenv + dependencies (evdev, rich, loguru, tkinter via system)
+- `venv_setup.sh` — Python virtualenv + dependencies (evdev, rich, loguru, Adafruit_DHT)
 - `display_install.sh` — Waveshare 4.3" DSI LCD Rev 2.2 display + touch overlays
 - `install_gui.sh` — **GUI mode** (X11, openbox, python3-tk, auto-login)
-- `install_service.sh` — **TUI mode** (legacy console interface on tty1)
+- `install_rf.sh` — RF hardware setup for CC1101
 
-### Recommended: GUI Mode Installation
+### GUI Mode Installation
 
 1. Prepare the Pi and install system packages
 
@@ -98,98 +96,255 @@ sudo /opt/rpi-lab/install/install_gui.sh         # GUI mode with large touch but
 
 ```bash
 sudo reboot
-```
 
-### Alternative: TUI Mode Installation (Console Only)
+### Quick Updates via GitHub Deployment
 
-If you prefer the lightweight console interface (no X11), install TUI mode instead:
-
-```bash
-sudo /opt/rpi-lab/install/venv_setup.sh
-sudo /opt/rpi-lab/install/display_install.sh
-sudo /opt/rpi-lab/install/install_service.sh    # TUI mode on tty1
-sudo reboot
-```
-
-Or use the deployment script for full redeployment (recommended for updates):
+After initial setup, use the quick deployment script for fast updates:
 
 ```bash
-sudo bash /opt/rpi-lab/deploy/deploy.sh [--no-backup] [--hard] [--dry-run]
+# On your development machine: commit and push changes
+cd ~/Code/GitHub/mrmagicbg/rpi-lab
+git add .
+git commit -m "Update sensor readings"
+git push origin main
+
+# On the Pi: pull and restart service
+ssh 10.10.10.105 "sudo bash /opt/rpi-lab/deploy/quick_deploy.sh"
 ```
 
-**Deployment Script Features:**
-- **Safety Prompts**: Requires branch name confirmation to prevent accidental deployments
-- **Automatic Backups**: Creates timestamped backups before making changes
-- **Flexible Options**: 
-  - `--no-backup`: Skip backup creation
-  - `--hard`: Force git reset to remote branch (discards local changes)
-  - `--dry-run`: Show what would be done without making changes
-- **Smart Repo Detection**: Automatically finds repo location from script path
-- **Service Management**: Handles systemd reload and service restart
+GUI Features
+------------
 
-GUI Mode vs TUI Mode
---------------------
+The GUI application provides an intuitive touch interface optimized for the Waveshare 4.3" 800×480 display:
 
-RPI Lab supports **two interface modes**:
+### Main Menu Buttons
 
-### **GUI Mode (Recommended for Waveshare 4.3" DSI)**
+- **🔧 Run RF Script(s)** - Execute CC1101 RF configuration scripts
+- **🌡️ Sensor Readings** - Display real-time DHT22 temperature & humidity
+- **🔄 Reboot Raspberry Pi** - System reboot with confirmation dialog
+- **💻 Open Shell (Terminal)** - Launch xterm terminal window
+- **❌ Exit** - Close GUI application with confirmation
 
-- **Large touch-friendly buttons** optimized for 800×480 touchscreen
-- Runs in X11 with openbox window manager
-- Auto-starts on boot via LightDM display manager
-- Better visibility and easier touch interaction
-- Service: `rpi_gui.service`
+### Design Features
 
-**Install GUI mode:**
+- **Large Touch Targets**: All buttons are 100px+ tall for easy touch interaction
+- **Color-Coded Interface**: Different colors for different action types
+  - Blue: RF operations
+  - Orange: Sensor monitoring
+  - Red: System actions (reboot)
+  - Green: Shell access
+  - Gray: Exit
+- **Confirmation Dialogs**: Destructive actions require confirmation
+- **Fullscreen Mode**: F11 to toggle, Escape to exit (keyboard shortcuts)
+- **Auto-start**: Launches automatically on boot via systemd
+
+DHT22 Sensor Setup
+------------------
+
+The RPI Lab includes support for DHT22 (AM2302) temperature and humidity sensors.
+
+### Hardware Requirements
+
+- DHT22/AM2302 sensor module
+- 3 jumper wires (or 4 if not using built-in pull-up)
+- Optional: 4.7kΩ resistor (pull-up between VCC and DATA)
+
+### Wiring Diagram
+
+**Quick Reference:**
+
+| DHT22 Pin | Raspberry Pi Pin | Description |
+|-----------|------------------|-------------|
+| Pin 1 (VCC) | Pin 1 (3.3V) | Power |
+| Pin 2 (DATA) | Pin 7 (GPIO4) | Data signal |
+| Pin 3 (NULL) | Not connected | - |
+| Pin 4 (GND) | Pin 6 (GND) | Ground |
+
+**Detailed wiring documentation:** See [`docs/DHT22_WIRING.md`](docs/DHT22_WIRING.md)
+
+### Software Installation
+
+1. Install system dependencies:
 
 ```bash
-sudo /opt/rpi-lab/install/install_gui.sh
-sudo reboot
+sudo apt-get install -y libgpiod2 python3-dev
 ```
 
-**Features:**
-- 🔧 Run RF Script(s)
-- 🔄 Reboot Raspberry Pi (with confirmation dialog)
-- 💻 Open Shell (launches xterm)
-- ❌ Exit
-
-**GUI service commands:**
+2. Install Python dependencies (automatically handled by venv_setup.sh):
 
 ```bash
-sudo systemctl status rpi_gui.service
-sudo journalctl -u rpi_gui.service -f
+cd /opt/rpi-lab
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### Testing the Sensor
+
+Test DHT22 before using in GUI:
+
+```bash
+cd /opt/rpi-lab
+source .venv/bin/activate
+python3 sensors/dht22.py
+```
+
+Expected output:
+```
+Reading from DHT22 sensor on GPIO4...
+Temperature: 23.5°C
+Humidity: 45.2%
+```
+
+### Using Sensor in GUI
+
+1. Launch GUI (auto-starts on boot, or manually):
+   ```bash
+   sudo systemctl start rpi_gui.service
+   ```
+
+2. Touch "🌡️ Sensor Readings" button
+
+3. View temperature and humidity readings
+
+4. Touch "🔄 Refresh" to update readings
+
+**Note:** If sensor is not connected, GUI will display "N/A" with warning message.
+
+### Changing GPIO Pin
+
+Default GPIO pin is **GPIO4 (BCM numbering, physical pin 7)**.
+
+To use a different pin, edit `gui/rpi_gui.py`:
+
+```python
+# Initialize DHT22 sensor (change GPIO pin here)
+DHT_SENSOR = DHT22Sensor(gpio_pin=17)  # Change to desired GPIO number
+```
+
+GitHub Deployment Workflow
+---------------------------
+
+### Initial Setup
+
+1. **Configure SSH keys** (one-time setup on Pi):
+
+```bash
+# Copy your SSH keys to Pi
+scp ~/.ssh/id_ed25519_mrmagicbg* 10.10.10.105:~/.ssh/
+
+# Configure SSH for GitHub
+ssh 10.10.10.105 "cat >> ~/.ssh/config << 'EOF'
+Host github.com
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_ed25519_mrmagicbg
+    StrictHostKeyChecking no
+EOF"
+
+# Test GitHub connection
+ssh 10.10.10.105 "ssh -T git@github.com"
+```
+
+2. **Configure git remote** for SSH:
+
+```bash
+ssh 10.10.10.105 "cd /opt/rpi-lab && sudo git remote set-url origin git@github.com:mrmagicbg/rpi-lab.git"
+```
+
+### Daily Workflow
+
+**Development → Deploy → Test**
+
+1. **On your development machine:**
+
+```bash
+cd ~/Code/GitHub/mrmagicbg/rpi-lab
+
+# Make changes to code
+vim gui/rpi_gui.py
+
+# Test locally (optional)
+python3 -m py_compile gui/rpi_gui.py
+
+# Commit and push
+git add .
+git commit -m "feat: add new feature"
+git push origin main
+```
+
+2. **On the Raspberry Pi (or remotely):**
+
+```bash
+# Option A: SSH and run quick deploy
+ssh 10.10.10.105 "sudo bash /opt/rpi-lab/deploy/quick_deploy.sh"
+
+# Option B: Full deployment with safety checks
+ssh 10.10.10.105 "sudo bash /opt/rpi-lab/deploy/deploy.sh"
+```
+
+3. **Verify deployment:**
+
+```bash
+ssh 10.10.10.105 "systemctl status rpi_gui.service"
+ssh 10.10.10.105 "journalctl -u rpi_gui.service -n 20"
+```
+
+### Deployment Scripts
+
+#### quick_deploy.sh (Recommended for Updates)
+
+Fast deployment for incremental changes:
+
+```bash
+sudo bash /opt/rpi-lab/deploy/quick_deploy.sh
+```
+
+**What it does:**
+- Stops GUI service
+- Pulls latest changes from GitHub
+- Shows commits behind origin
+- Updates Python dependencies if requirements.txt changed
+- Restarts GUI service
+- Displays service status
+
+**Use when:** Making frequent updates, testing changes
+
+#### deploy.sh (Full Deployment)
+
+Comprehensive deployment with safety features:
+
+```bash
+sudo bash /opt/rpi-lab/deploy/deploy.sh [OPTIONS]
+```
+
+**Options:**
+- `--no-backup` - Skip creating backup before deployment
+- `--hard` - Force git reset --hard (discards local changes)
+- `--dry-run` - Show what would be done without making changes
+- `--no-pull` - Deploy current local state without pulling
+
+**What it does:**
+- Creates timestamped backup in `/opt/backups/`
+- Prompts for branch confirmation (safety feature)
+- Pulls latest changes or resets to remote
+- Recreates virtual environment
+- Reloads systemd and restarts service
+
+**Use when:** Major updates, system changes, branch switching
+
+### Rollback
+
+If deployment fails, restore from backup:
+
+```bash
+# List backups
+ls -lh /opt/backups/
+
+# Restore specific backup
+sudo rm -rf /opt/rpi-lab
+sudo cp -a /opt/backups/rpi-lab-backup-YYYYMMDD-HHMMSS /opt/rpi-lab
 sudo systemctl restart rpi_gui.service
 ```
-
-### **TUI Mode (Legacy, Console-only)**
-
-- Text-based curses interface on tty1
-- No X11 required (lighter weight)
-- Harder to use with touch (small hit targets)
-- Service: `rpi_tui.service`
-
-**Install TUI mode:**
-
-```bash
-sudo /opt/rpi-lab/install/install_service.sh
-sudo reboot
-```
-
-**Switch between modes:**
-
-```bash
-# Switch to GUI mode
-sudo systemctl disable rpi_tui.service
-sudo systemctl enable rpi_gui.service
-sudo reboot
-
-# Switch to TUI mode
-sudo systemctl disable rpi_gui.service
-sudo systemctl enable rpi_tui.service
-sudo reboot
-```
-
-**Note:** Only one mode should be enabled at a time to avoid conflicts.
 
 Service management
 ------------------
@@ -198,29 +353,51 @@ Service management
 
 Runs the GUI application in X11 after graphical.target.
 
-Common commands:
+**Service file location:** `/etc/systemd/system/rpi_gui.service`
+
+**Common commands:**
 
 ```bash
-sudo systemctl daemon-reload
+# Enable and start service
 sudo systemctl enable --now rpi_gui.service
+
+# Check service status
 sudo systemctl status rpi_gui.service -l
-sudo journalctl -xeu rpi_gui.service --no-pager
+
+# View logs (live tail)
+sudo journalctl -u rpi_gui.service -f
+
+# View recent logs
+sudo journalctl -u rpi_gui.service -n 50
+
+# Restart service after code changes
+sudo systemctl restart rpi_gui.service
+
+# Reload systemd after editing service file
+sudo systemctl daemon-reload
 ```
 
-### TUI Service (rpi_tui.service)
+**Auto-start configuration:**
+- Service starts after `graphical.target` and `network-online.target`
+- 5-second delay to ensure X11 is ready
+- Runs as user `mrmagic` with DISPLAY=:0
+- Auto-restarts on failure with 10-second delay
 
-Runs the TUI application on `tty1` (console only, no X11).
-
-Common commands:
+**Troubleshooting service issues:**
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now rpi_tui.service
-sudo systemctl status rpi_tui.service -l
-sudo journalctl -xeu rpi_tui.service --no-pager
-```
+# Check if X11 is running
+ps aux | grep Xorg
 
-If you change a unit file, run `sudo systemctl daemon-reload` before restarting or enabling.
+# Check DISPLAY environment
+echo $DISPLAY
+
+# Check if LightDM is active
+systemctl status lightdm
+
+# View full service logs
+journalctl -u rpi_gui.service --no-pager -b
+```
 
 Touch testing & debugging
 -------------------------
@@ -230,21 +407,28 @@ Install `evtest` to inspect input events:
 ```bash
 sudo apt-get update
 sudo apt-get install -y evtest
-sudo evtest /dev/input/event0
+sudo evtest /dev/input/event2  # ft5x06 touch device
 ```
 
-Run the TUI directly to see debug output (inside the venv):
+Run the GUI directly for debug output:
 
 ```bash
 source /opt/rpi-lab/.venv/bin/activate
-sudo /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py
+DISPLAY=:0 /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_gui.py
 ```
 
 **Touch Debugging Features:**
-- The TUI logs detailed touch coordinate information
-- Shows raw touch values, scaled coordinates, and button mapping
-- Helps diagnose touch calibration and button position issues
-- Check logs with: `sudo journalctl -xeu rpi_tui.service --no-pager`
+- GUI logs all button presses and touch events
+- Shows sensor readings and error messages
+- Check logs with: `sudo journalctl -u rpi_gui.service -f`
+- Test touch with: `sudo evtest /dev/input/event2`
+
+**Common touch issues:**
+
+1. **No touch response** - Check `/proc/bus/input/devices` for ft5x06
+2. **Wrong coordinates** - Verify display overlay matches hardware (waveshare-800x480)
+3. **Intermittent touch** - Check power supply, use polling_mode overlay
+4. **Ghost touches** - Check for electrical interference, ground display properly
 
 Display + touch: known-good configuration (Waveshare 4.3" DSI Rev 2.2)
 -------------------------------------------------------------
@@ -264,6 +448,9 @@ project uses the following **tested working** configuration:
 
   # Touch controller (ft5x06) using polling mode to avoid IRQ timeout
   dtoverlay=edt-ft5406,polling_mode
+
+  # Optional: 3D acceleration (comment out if instability occurs)
+  dtoverlay=vc4-kms-v3d
 
   # Helpful when using KMS with multiple framebuffers
   max_framebuffers=2

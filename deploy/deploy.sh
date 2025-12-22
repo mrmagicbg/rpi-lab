@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # deploy.sh - Safe redeployment script for rpi-lab
 #
-# This script safely redeploys rpi-lab from a git repository to /opt/rpi-lab
+# This script safely redeploys rpi-lab from GitHub to /opt/rpi-lab
 # with backup creation, venv management, and service restart.
 #
 # Features:
@@ -10,7 +10,7 @@
 # - Smart repository detection from script location
 # - Virtual environment recreation
 # - Git branch pulling with latest changes
-# - Systemd service management
+# - Systemd service management (GUI mode)
 #
 # Usage: sudo bash deploy.sh [OPTIONS]
 # Options:
@@ -29,7 +29,7 @@
 #   sudo bash deploy.sh --no-backup              # Skip backup creation
 #   sudo bash deploy.sh --hard                   # Force reset local changes
 #   sudo bash deploy.sh --no-pull                # Deploy current local state
-#   DEPLOY_BRANCH=develop sudo bash deploy.sh   # Deploy specific branch without prompting
+#   DEPLOY_BRANCH=main sudo bash deploy.sh      # Deploy specific branch without prompting
 set -euo pipefail
 IFS=$'\n\t'
 
@@ -37,7 +37,7 @@ IFS=$'\n\t'
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(dirname "$SCRIPT_DIR")"
 APP_DIR="${APP_DIR:-/opt/rpi-lab}"
-SERVICE_NAME="rpi_tui.service"
+SERVICE_NAME="rpi_gui.service"
 BACKUP_DIR="${BACKUP_DIR:-/opt/backups}"
 DO_BACKUP=1
 HARD=0

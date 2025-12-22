@@ -9,7 +9,7 @@
 #   - Installs helper tools (evtest, i2c-tools) for debugging
 #
 # Python touch support (evdev) is installed into the project venv via
-#   install/venv_setup.sh using tui/requirements.txt.
+#   install/venv_setup.sh using requirements.txt.
 
 set -euo pipefail
 

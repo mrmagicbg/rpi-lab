@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Create a Python virtualenv for the TUI and install requirements
+# Create a Python virtualenv for the RPI Lab and install requirements
 set -euo pipefail
 
 VENV_DIR="/opt/rpi-lab/.venv"
-REQ_FILE="/opt/rpi-lab/tui/requirements.txt"
+REQ_FILE="/opt/rpi-lab/requirements.txt"
 
 if [ "$EUID" -ne 0 ]; then
   echo "Warning: running as non-root. The venv will be created in $PWD unless you run with sudo."
