@@ -2,6 +2,48 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.4.0] - 2025-12-22
+### Added
+- **TPMS (Tire Pressure Monitoring System) Support**
+  - New `rf/tpms_decoder.py` module with Schrader and Siemens/VDO protocol decoders
+  - Manchester bit-level decoding for RF packets
+  - Automatic pressure (kPa/PSI) and temperature (°C/°F) conversion
+  - Battery status and signal quality indicators
+  
+- **TPMS Monitor GUI** (`rf/tpms_monitor_gui.py`)
+  - Real-time RF capture and visualization
+  - Live sensor cards showing pressure, temperature, battery, RSSI
+  - Start/Stop capture controls
+  - Activity log with packet details
+  - Automatic sensor ID tracking and updates
+  
+- **CC1101 RF Tools Integration**
+  - Built `rx_profile_demo` binary for TPMS mode (433.92 MHz)
+  - CSV packet logging with timestamp and decoded fields
+  - Support for IoT, GFSK, OOK modes
+  
+- **Comprehensive Documentation**
+  - `docs/TPMS_MONITORING.md` - Complete TPMS guide
+  - Protocol specifications (Schrader, Siemens/VDO)
+  - Hardware wiring diagrams
+  - Troubleshooting guide
+  - Security and legal notes
+
+### Changed
+- **Main GUI Enhancement**
+  - RF button now launches TPMS Monitor GUI (was terminal script)
+  - Button renamed to "📡 TPMS Monitor" for clarity
+  - Integrated launch from main control panel
+  
+- **RF Setup Script**
+  - Successfully builds rx_profile_demo with WiringPi
+  - Added TPMS mode compilation and testing
+
+### Fixed
+- Exit button confirmed present and working in main GUI
+- RF tools compilation on Raspberry Pi 3B
+- SPI interface enabled and tested
+
 ## [0.3.1] - 2025-12-22
 ### Changed
 - **GUI Layout Redesign**

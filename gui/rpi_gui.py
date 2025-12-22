@@ -163,7 +163,7 @@ class RPILauncherGUI:
         # Menu buttons - all uniform size
         btn_rf = tk.Button(
             button_frame,
-            text="🔧 Run RF Script(s)",
+            text="📡 TPMS Monitor",
             command=self.run_rf_script,
             bg='#2d89ef',
             activebackground='#1e5fa8',
@@ -222,31 +222,34 @@ class RPILauncherGUI:
         logger.info("GUI initialized successfully")
     
     def run_rf_script(self):
-        """Execute the RF setup script in a terminal"""
-        logger.info("RF Script button pressed")
-        if not os.path.isfile(RF_SCRIPT_PATH):
-            logger.error(f"RF script not found: {RF_SCRIPT_PATH}")
-            messagebox.showerror(
-                "Script Not Found",
-                f"RF script not found at:\n{RF_SCRIPT_PATH}"
-            )
-            return
+        """Launch TPMS RF Monitor GUI"""
+        logger.info("RF Monitor button pressed")
         
-        logger.info(f"Running RF script: {RF_SCRIPT_PATH}")
         try:
-            # Run in xterm or fallback terminal
-            terminals = ['x-terminal-emulator', 'xterm', 'lxterminal', 'gnome-terminal']
-            for term in terminals:
-                if subprocess.call(['which', term], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
-                    subprocess.Popen([term, '-e', f'bash {RF_SCRIPT_PATH}; read -p "Press Enter to close..."'])
-                    break
+            # Launch TPMS monitor in new window
+            rf_dir = os.path.join(BASE_DIR, 'rf')
+            tpms_gui_path = os.path.join(rf_dir, 'tpms_monitor_gui.py')
+            
+            if not os.path.isfile(tpms_gui_path):
+                logger.error(f"TPMS monitor not found: {tpms_gui_path}")
+                messagebox.showerror(
+                    "TPMS Monitor Not Found",
+                    f"TPMS monitor GUI not found at:\n{tpms_gui_path}"
+                )
+                return
+            
+            # Launch TPMS monitor as standalone window
+            logger.info(f"Launching TPMS monitor: {tpms_gui_path}")
+            venv_python = os.path.join(BASE_DIR, '.venv', 'bin', 'python')
+            
+            if os.path.exists(venv_python):
+                subprocess.Popen([venv_python, tpms_gui_path])
             else:
-                # Fallback: run directly and show message
-                subprocess.call(['bash', RF_SCRIPT_PATH])
-                messagebox.showinfo("RF Script", "RF script execution completed.")
+                subprocess.Popen(['python3', tpms_gui_path])
+            
         except Exception as e:
-            logger.error(f"Failed to run RF script: {e}")
-            messagebox.showerror("Error", f"Failed to run RF script:\n{e}")
+            logger.error(f"Failed to launch TPMS monitor: {e}")
+            messagebox.showerror("Error", f"Failed to launch TPMS monitor:\n{e}")
     
     def update_sensor_readings(self):
         """Update sensor readings on main screen (called periodically)"""

@@ -5,10 +5,10 @@ Overview
 
 RPI Lab collects utilities and helpers for Raspberry Pi devices with integrated hardware support:
 
-- `rf/` — RF-related code and Pi setup for CC1101 projects
+- `rf/` — **TPMS tire pressure monitoring** with CC1101 RF transceiver (433 MHz)
 - `display/` — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
-- `gui/` — **GUI application with large touch buttons** for Waveshare display
-- `sensors/` — **DHT22 temperature & humidity sensor support**
+- `gui/` — **Touch-friendly GUI** with TPMS monitor, sensor display, system controls
+- `sensors/` — **DHT22 temperature & humidity sensor** support
 - `deploy/` — GitHub-based deployment scripts for easy updates
 
 This README provides Quickstart, detailed install steps, sensor configuration, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
@@ -19,6 +19,7 @@ Table of Contents
 - Quickstart
 - Installation (detailed)
 - GUI Features
+- TPMS RF Monitor
 - DHT22 Sensor Setup
 - GitHub Deployment Workflow
 - Service management
@@ -125,7 +126,7 @@ The GUI application provides an intuitive touch interface optimized for the Wave
 - Status line shows last update time or connection warnings
 
 **4 Uniform Touch Buttons** (bottom section):
-- **🔧 Run RF Script(s)** - Execute CC1101 RF configuration scripts (Blue)
+- **📡 TPMS Monitor** - Launch RF tire pressure monitoring GUI (Blue)
 - **🔄 Reboot System** - System reboot with confirmation dialog (Red)
 - **💻 Open Terminal** - Launch xterm terminal window (Green)
 - **❌ Exit Application** - Close GUI with confirmation (Gray)
@@ -139,6 +140,59 @@ The GUI application provides an intuitive touch interface optimized for the Wave
 - **Confirmation Dialogs**: Destructive actions (reboot, exit) require confirmation
 - **Fullscreen Mode**: F11 to toggle, Escape to exit (keyboard shortcuts)
 - **Auto-start**: Launches automatically on boot via systemd service
+
+TPMS RF Monitor
+---------------
+
+Real-time tire pressure monitoring system using CC1101 RF transceiver.
+
+### Features
+
+- **Live Sensor Display**: Shows all detected TPMS sensors with individual cards
+- **Pressure Monitoring**: Displays pressure in both PSI and kPa
+- **Temperature Display**: Shows tire temperature in °C and °F
+- **Battery Status**: Indicates low battery warnings from sensors
+- **Signal Quality**: RSSI and LQI indicators for each sensor
+- **Protocol Support**: 
+  - Schrader (EG53MA4, G4) - 433.92 MHz
+  - Siemens/VDO (Continental) - 433.92 MHz
+  - Generic Manchester-encoded TPMS
+
+### Hardware Setup
+
+**CC1101 Module Wiring**:
+```
+CC1101 Pin    → Raspberry Pi GPIO
+VCC (3.3V)    → Pin 1 (3.3V)
+GND           → Pin 6 (GND)
+MOSI          → Pin 19 (GPIO 10)
+MISO          → Pin 21 (GPIO 9)
+SCK           → Pin 23 (GPIO 11)
+CSN           → Pin 24 (GPIO 8, CE0)
+GDO0          → Pin 22 (GPIO 25)
+ANT           → 17.3 cm wire (433 MHz quarter-wave)
+```
+
+**Enable SPI**:
+```bash
+sudo raspi-config
+# → Interface Options → SPI → Yes
+```
+
+**Build RF Tools**:
+```bash
+sudo bash /opt/rpi-lab/install/install_rf.sh
+```
+
+### Usage
+
+1. **From Main GUI**: Click "📡 TPMS Monitor" button
+2. **Standalone**: `python /opt/rpi-lab/rf/tpms_monitor_gui.py`
+3. **Click "Start Capture"** to begin monitoring
+4. **Trigger sensors**: Drive vehicle or use TPMS activation tool
+5. **View results**: Sensor cards appear showing pressure, temp, battery
+
+**Full Documentation**: See [`docs/TPMS_MONITORING.md`](docs/TPMS_MONITORING.md)
 
 DHT22 Sensor Setup
 ------------------
