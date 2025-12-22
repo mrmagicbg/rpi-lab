@@ -198,4 +198,4 @@ If you'd like me to add an automated repair script (`install/repair_git.sh`) or 
 
 ---
 
-**Last updated:** 2025-11-30
+**Last updated:** 2025-12-22
