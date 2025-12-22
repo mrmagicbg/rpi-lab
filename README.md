@@ -61,7 +61,7 @@ The deployment script includes safety features:
 Installation (detailed)
 -----------------------
 
-See the `install/` folder for small helper scripts that setup the virtualenv (`venv_setup.sh`), display drivers (`display_install.sh`) and service installation (`install_service.sh`). Typical steps:
+See the `install/` folder for small helper scripts that setup the virtualenv (`venv_setup.sh`), **Waveshare 4.3" DSI LCD Rev 2.2 display + touch** (`display_install.sh`) and service installation (`install_service.sh`). Typical steps:
 
 1. Prepare the Pi and install system packages
 
@@ -81,7 +81,7 @@ sudo rsync -a --chown=root:root ~/rpi-lab/ /opt/rpi-lab/
 
 ```bash
 sudo /opt/rpi-lab/install/venv_setup.sh
-sudo /opt/rpi-lab/install/display_install.sh    # display + touch
+sudo /opt/rpi-lab/install/display_install.sh    # Waveshare 4.3" DSI Rev 2.2 display + touch
 sudo /opt/rpi-lab/install/install_rf.sh         # RF hardware setup (optional)
 sudo /opt/rpi-lab/install/install_service.sh    # install and enable TUI systemd unit
 ```
@@ -142,6 +142,65 @@ sudo /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/tui/rpi_tui.py
 - Helps diagnose touch calibration and button position issues
 - Check logs with: `sudo journalctl -xeu rpi_tui.service --no-pager`
 
+Display + touch: known-good configuration (Waveshare 4.3" DSI Rev 2.2)
+-------------------------------------------------------------
+
+For the Waveshare 4.3" DSI LCD Rev 2.2 panel with ft5x06 touch, the
+project uses the following **tested working** configuration:
+
+1. `config.txt` (Bookworm/Trixie images typically use `/boot/firmware/config.txt`):
+
+  ```ini
+  # Manually configure DSI display (disable auto-detect)
+  display_auto_detect=0
+
+  [all]
+  # Waveshare 4.3" DSI LCD Rev 2.2 (800x480)
+  dtoverlay=vc4-kms-dsi-waveshare-800x480
+
+  # Touch controller (ft5x06) using polling mode to avoid IRQ timeout
+  dtoverlay=edt-ft5406,polling_mode
+
+  # Helpful when using KMS with multiple framebuffers
+  max_framebuffers=2
+  ```
+
+2. Recommended setup commands (from a fresh Pi):
+
+  ```bash
+  sudo apt update && sudo apt upgrade -y
+  sudo apt install -y git python3 python3-venv python3-pip rsync
+
+  git clone https://github.com/mrmagicbg/rpi-lab.git ~/rpi-lab
+  sudo rsync -a --chown=root:root ~/rpi-lab/ /opt/rpi-lab/
+
+  # Python virtualenv + TUI deps (rich, loguru, evdev)
+  sudo /opt/rpi-lab/install/venv_setup.sh
+
+  # Waveshare 4.3" DSI Rev 2.2 display + touch + tools (evtest, i2c-tools)
+  sudo /opt/rpi-lab/install/display_install.sh
+
+  # Systemd service
+  sudo /opt/rpi-lab/install/install_service.sh
+
+  # Reboot to apply overlays and start the TUI on tty1
+  sudo reboot
+  ```
+
+3. Post-install verification:
+
+  ```bash
+  # High-level check (overlays, fb0, backlight, touch, service)
+  sudo /opt/rpi-lab/display/health_check.sh
+
+  # Live touch events from ft5x06
+  sudo /opt/rpi-lab/display/test_touch.sh
+
+  # Kernel overlay list and touch driver
+  sudo dtoverlay -l
+  sudo dmesg | grep -i 'ft5\|edt'
+  ```
+
 Troubleshooting
 ---------------
 
@@ -167,12 +226,24 @@ rsync -av --exclude='.git' rpi-lab/ rpi-lab-recovered/
 Touch device detection failures (ft5x06 timeout):
 
 - **Symptom:** `edt_ft5x06 10-0038: probe with driver edt_ft5x06 failed with error -110`
-- **Cause:** IRQ-driven probe timing out on interrupt line initialization
-- **Solution:** Run the touch device fix script:
-  ```bash
-  sudo bash /opt/rpi-lab/display/fix_touch_detection.sh
-  ```
-  This adds the `edt-ft5406` overlay with `polling_mode` parameter, allowing the device to be detected via polling instead of interrupts.
+- **Cause:** IRQ-driven probe timing out on the ft5x06 interrupt line during driver probe
+- **Primary fix (recommended):**
+  - Run the Waveshare 4.3" installer, which applies the full known-good config:
+    ```bash
+    sudo /opt/rpi-lab/display/setup_waveshare_4.3inch_dsi.sh --reboot
+    ```
+    This ensures the display overlay and touch overlay are set to:
+    - `dtoverlay=vc4-kms-dsi-waveshare-800x480`
+    - `dtoverlay=edt-ft5406,polling_mode`
+
+- **Secondary fix (touch only, if display is already correct):**
+  - Normalize just the touch overlay to polling mode:
+    ```bash
+    sudo bash /opt/rpi-lab/display/fix_touch_detection.sh
+    ```
+    This guarantees there is a `dtoverlay=edt-ft5406,polling_mode` line in the
+    active `config.txt`, allowing the device to be detected via polling instead
+    of interrupts.
 
 Service start failures (tty or permissions):
 

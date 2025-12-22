@@ -1,5 +1,16 @@
 #!/usr/bin/env bash
-# Wrapper to run display installer non-interactively (useful for automated installs)
+# Non-interactive installer for Waveshare 4.3" DSI LCD Rev 2.2 + touch
+#
+# Idempotently:
+#   - Configures /boot*/config.txt for the working overlay combination
+#     dtoverlay=vc4-kms-dsi-waveshare-800x480
+#     dtoverlay=edt-ft5406,polling_mode
+#   - Disables display_auto_detect (we manage the DSI panel explicitly)
+#   - Installs helper tools (evtest, i2c-tools) for debugging
+#
+# Python touch support (evdev) is installed into the project venv via
+#   install/venv_setup.sh using tui/requirements.txt.
+
 set -euo pipefail
 
 if [ "$EUID" -ne 0 ]; then
@@ -14,11 +25,12 @@ if [ ! -f "$DISPLAY_SCRIPT" ]; then
   exit 2
 fi
 
-# Run installer with --no-reboot so the main installer controls reboot
+echo "[display_install] Applying Waveshare 4.3\" DSI Rev 2.2 config..."
+# Run installer with --no-reboot so the caller controls reboot timing
 bash "$DISPLAY_SCRIPT" --no-reboot
 
-echo "Installing Python touch support (evdev)..."
-sudo apt-get update
-sudo apt-get install -y python3-pip
-sudo pip3 install evdev
-echo "Display installation finished (no reboot)."
+echo "[display_install] Installing debugging tools (evtest, i2c-tools)..."
+apt-get update -y
+apt-get install -y evtest i2c-tools
+
+echo "[display_install] Done. Reboot is still required for overlay changes to take effect."
