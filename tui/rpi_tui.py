@@ -94,30 +94,38 @@ def main_menu(stdscr):
         try:
             from evdev import list_devices
             devices = [InputDevice(path) for path in list_devices()]
+            # Priority order: ft5x06 (hardware) > goodix > raspberrypi-ts (firmware fallback)
+            priority_keywords = [
+                ('ft5x06', 10),      # FocalTech hardware controller (highest priority)
+                ('goodix', 9),       # Goodix hardware controller
+                ('touchscreen', 5),  # Generic touchscreen
+                ('capacitive', 4),   # Capacitive touch
+                ('raspberrypi-ts', 1) # Firmware touchscreen (lowest priority)
+            ]
+            candidate_devices = []
             for dev in devices:
                 logger.info(f"Found input device: {dev.path} - {dev.name}")
-                # Look for touchscreen devices
-                if 'touchscreen' in dev.name.lower() or 'goodix' in dev.name.lower() or 'capacitive' in dev.name.lower():
-                    touchscreen_device = dev.path
-                    logger.info(f"Using touchscreen device: {dev.path} - {dev.name}")
-                    break
+                # Score each device based on priority keywords
+                score = 0
+                for keyword, weight in priority_keywords:
+                    if keyword in dev.name.lower():
+                        score = max(score, weight)
+                
+                # Check if it has touch capabilities
+                try:
+                    caps = dev.capabilities()
+                    if ecodes.EV_ABS in caps and (ecodes.ABS_X in caps[ecodes.EV_ABS] or getattr(ecodes, 'ABS_MT_POSITION_X', None) in caps[ecodes.EV_ABS]):
+                        if score > 0:
+                            candidate_devices.append((score, dev.path, dev.name))
+                            logger.info(f"Touch candidate: {dev.path} - {dev.name} (score={score})")
+                except Exception as e:
+                    logger.debug(f"Could not check capabilities for {dev.path}: {e}")
             
-            # Fallback to common event devices if no touchscreen found
-            if not touchscreen_device:
-                for event_num in range(10):  # Check event0 through event9
-                    event_path = f'/dev/input/event{event_num}'
-                    try:
-                        dev = InputDevice(event_path)
-                        logger.info(f"Checking {event_path}: {dev.name}")
-                        # Check if it has touch capabilities
-                        caps = dev.capabilities()
-                        if ecodes.EV_ABS in caps and (ecodes.ABS_X in caps[ecodes.EV_ABS] or getattr(ecodes, 'ABS_MT_POSITION_X', None) in caps[ecodes.EV_ABS]):
-                            touchscreen_device = event_path
-                            logger.info(f"Using detected touch device: {event_path} - {dev.name}")
-                            break
-                    except Exception as e:
-                        logger.debug(f"Could not check {event_path}: {e}")
-                        continue
+            # Pick the highest scoring device
+            if candidate_devices:
+                candidate_devices.sort(reverse=True, key=lambda x: x[0])
+                touchscreen_device = candidate_devices[0][1]
+                logger.info(f"Selected touchscreen device: {touchscreen_device} - {candidate_devices[0][2]} (score={candidate_devices[0][0]})")
         except Exception as e:
             logger.warning(f"Error detecting touchscreen device: {e}")
         
