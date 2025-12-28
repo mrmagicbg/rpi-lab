@@ -346,7 +346,61 @@ sudo bash /opt/rpi-lab/deploy/quick_deploy.sh
 
 **Use when:** Making frequent updates, testing changes
 
-#### deploy.sh (Full Deployment)
+#### deploy.sh (Full Deployment with Prerequisite Checking)
+
+Comprehensive deployment with validation and safety features:
+
+```bash
+sudo bash /opt/rpi-lab/deploy/deploy.sh
+```
+
+**What it does:**
+- **Phase 1:** Validates system prerequisites (python3, venv, i2c-tools, etc.)
+- **Phase 2:** Checks I2C kernel modules and configuration
+- **Phase 3:** Detects BME690 sensor on I2C bus (0x76/0x77)
+- **Phase 4:** Verifies Python virtual environment and libraries
+- **Phase 5:** Creates timestamped backup (with automatic rollback on failure)
+- **Phases 6-11:** Git pull, rsync, venv creation, service installation, restart
+
+**New in v2.0:**
+- ✓ Comprehensive prerequisite checking before deployment
+- ✓ Colored status output (✓ success, ⚠ warning, ✗ error)
+- ✓ I2C sensor detection with address reporting
+- ✓ Automatic rollback on deployment failure
+- ✓ Python library validation (bme690, tkinter)
+
+**Options:**
+```bash
+sudo bash deploy.sh --no-backup     # Skip backup (faster, no rollback)
+sudo bash deploy.sh --no-prereq     # Skip prerequisite checking
+sudo bash deploy.sh --hard          # Force git reset --hard
+sudo bash deploy.sh --no-pull       # Skip git pull (deploy local state)
+```
+
+**Use when:** Major updates, first-time deployment, troubleshooting
+
+**Example output:**
+```
+=== PHASE 1: System Prerequisites ===
+✓ python3 installed
+✓ python3-venv installed
+✓ i2c-tools installed
+Status: 6 installed, 0 missing
+
+=== PHASE 2: I2C Configuration ===
+✓ I2C kernel modules loaded
+✓ I2C device files exist
+
+=== PHASE 3: BME690 Sensor Detection ===
+✓ BME690 sensor detected at 0x76
+
+=== PHASE 4: Python Virtual Environment ===
+✓ Virtual environment exists
+✓ bme690 library available
+✓ tkinter library available
+
+[Deployment proceeds safely...]
+```
 
 Comprehensive deployment with safety features:
 

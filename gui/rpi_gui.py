@@ -47,6 +47,10 @@ class RPILauncherGUI:
         self.root = root
         self.root.title("RPI Lab - Control Panel")
         
+        # Error tracking for sensor updates with exponential backoff
+        self.sensor_error_count = 0
+        self.update_interval = 5000  # Initial update interval in milliseconds
+        
         # Get screen dimensions (800x480 for Waveshare 4.3")
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
@@ -294,7 +298,7 @@ class RPILauncherGUI:
             messagebox.showerror("Error", f"Failed to launch TPMS monitor:\n{e}")
     
     def update_sensor_readings(self):
-        """Update sensor readings on main screen (called periodically)"""
+        """Update sensor readings on main screen with error recovery and exponential backoff."""
         try:
             data = BME_SENSOR.read_formatted()
             self.temp_label.config(text=data["temperature_str"]) 
@@ -303,11 +307,29 @@ class RPILauncherGUI:
             self.gas_label.config(text=data["gas_res_str"]) 
 
             if data["temperature_str"] == "N/A":
+                # Sensor not responding - increment error counter
+                self.sensor_error_count += 1
+                
+                # Adjust update interval based on error frequency
+                if self.sensor_error_count < 3:
+                    self.update_interval = 5000  # 5 sec - normal
+                elif self.sensor_error_count < 6:
+                    self.update_interval = 15000  # 15 sec - slowing down
+                else:
+                    self.update_interval = 60000  # 60 sec - very slow
+                
                 self.sensor_status.config(
-                    text="⚠️ Sensor not connected (check I2C & address 0x76/0x77)",
+                    text=f"⚠️ Sensor not connected (error #{self.sensor_error_count}, retry in {self.update_interval//1000}s)",
                     fg='#ffaa00'
                 )
             else:
+                # Success - reset error counter and interval
+                if self.sensor_error_count > 0:
+                    logger.info(f"Sensor recovered after {self.sensor_error_count} errors")
+                
+                self.sensor_error_count = 0
+                self.update_interval = 5000  # Reset to normal interval
+                
                 status_text = "✓ Last updated: " + self.get_current_time()
                 if data.get("heat_stable"):
                     status_text += " • Gas heater stable"
@@ -315,19 +337,31 @@ class RPILauncherGUI:
                     text=status_text,
                     fg='#00aa00'
                 )
+                
         except Exception as e:
-            logger.error(f"Sensor update error: {e}")
+            logger.error(f"Sensor update error: {e}", exc_info=True)
+            self.sensor_error_count += 1
+            
+            # Exponential backoff based on consecutive errors
+            if self.sensor_error_count < 3:
+                self.update_interval = 5000  # 5 sec
+            elif self.sensor_error_count < 6:
+                self.update_interval = 15000  # 15 sec
+            else:
+                self.update_interval = 60000  # 60 sec
+            
+            # Show error state with countdown
             self.temp_label.config(text="Error")
             self.humid_label.config(text="Error")
             self.press_label.config(text="Error")
             self.gas_label.config(text="Error")
             self.sensor_status.config(
-                text="⚠️ Sensor error",
-                fg='#ff0000'
+                text=f"⚠️ Sensor error #{self.sensor_error_count} ({e.__class__.__name__}). Retry in {self.update_interval//1000}s",
+                fg='#ff6666'
             )
         
-        # Schedule next update in 5 seconds
-        self.root.after(5000, self.update_sensor_readings)
+        # Schedule next update with current interval (may have changed due to errors)
+        self.root.after(self.update_interval, self.update_sensor_readings)
     
     def get_current_time(self):
         """Get current time string"""
