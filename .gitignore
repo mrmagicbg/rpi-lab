@@ -25,6 +25,17 @@ dist/
 __pycache__/
 *.py[cod]
 *.egg-info/
+.venv/
+venv/
+env/
+
+# Sensor data and logs
+*.csv
+*.json
+tpms_data_*.csv
+tpms_data_*.json
+sensor_readings/
+rf_logs/
 
 # OS files
 .DS_Store

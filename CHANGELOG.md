@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.1] - 2025-12-28
+### Fixed
+- **Deployment Script**: Updated `deploy/deploy.sh` to use `gui/rpi_gui.service` instead of deleted `tui/rpi_tui.service`
+  - Now correctly copies service file from `gui/` directory
+  - Automatically removes old TUI service if it exists on the system
+  - Prevents deployment errors when upgrading from TUI to GUI version
+
+### Changed
+- **Git Configuration**: Enhanced `.gitignore` to exclude virtual environments and sensor data files
+  - Added `.venv/`, `venv/`, `env/` directories
+  - Added `*.csv`, `*.json`, and sensor data directories to prevent accidental commits
+
 ## [0.5.0] - 2025-12-28
 ### Added
 - **TPMS Monitor Enhancements**

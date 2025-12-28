@@ -127,8 +127,9 @@ if [ $DO_BACKUP -eq 1 ]; then
 	ok "Backup created: $BK"
 fi
 
-log "Stopping TUI service if running..."
+log "Stopping service if running..."
 systemctl stop $SERVICE_NAME || true
+systemctl stop rpi_tui.service 2>/dev/null || true  # Stop old TUI service if it exists
 
 if [ $PULL_LATEST -eq 1 ]; then
 	log "Pulling latest changes from branch '$DEPLOY_BRANCH'..."
@@ -167,14 +168,22 @@ if [ ! -d "$APP_DIR/.venv" ]; then
 fi
 
 log "Copying systemd unit file..."
-cp "$APP_DIR/tui/rpi_tui.service" "/etc/systemd/system/rpi_tui.service"
-chmod 644 "/etc/systemd/system/rpi_tui.service"
+cp "$APP_DIR/gui/rpi_gui.service" "/etc/systemd/system/$SERVICE_NAME"
+chmod 644 "/etc/systemd/system/$SERVICE_NAME"
 
-log "Reloading systemd and restarting TUI service..."
+# Remove old TUI service if it exists
+if [ -f "/etc/systemd/system/rpi_tui.service" ]; then
+	log "Removing old TUI service..."
+	systemctl stop rpi_tui.service 2>/dev/null || true
+	systemctl disable rpi_tui.service 2>/dev/null || true
+	rm -f "/etc/systemd/system/rpi_tui.service"
+fi
+
+log "Reloading systemd and restarting GUI service..."
 systemctl daemon-reload
-systemctl enable --now rpi_tui.service
-systemctl restart rpi_tui.service
-ok "TUI service deployed and restarted."
+systemctl enable --now $SERVICE_NAME
+systemctl restart $SERVICE_NAME
+ok "GUI service deployed and restarted."
 
 log "Status:"
-systemctl status rpi_tui.service -l
+systemctl status $SERVICE_NAME -l
