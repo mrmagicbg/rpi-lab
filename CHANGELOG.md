@@ -2,6 +2,52 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] - 2025-12-28
+### Added
+- **TPMS Monitor Enhancements**
+  - Supplier/manufacturer identification for detected sensors (Schrader Electronics, Siemens/Continental)
+  - Pressure status indicators (CRITICAL, LOW, NORMAL, HIGH) with dynamic color coding
+  - Visual pressure cards with status-based background colors
+  - Temperature display in both °C and °F with visual indicators
+  - Signal quality assessment (Excellent/Good/Fair/Poor) based on RSSI
+  - Battery status with large visual indicators (🔴 LOW / 🟢 OK)
+  - Warning counter in stats showing active pressure/battery alerts
+  
+- **TPMS Logger Module** (`rf/tpms_logger.py`)
+  - Session-based CSV and JSON export for sensor readings
+  - Summary statistics (min/max/avg pressure, temperature, RSSI)
+  - Pressure status classification in logs
+  - Multi-format export with automatic file naming
+  - Log analysis utilities for existing files
+  
+- **Sensor Data Enrichment**
+  - Protocol supplier information included in readings
+  - Transmission type information (Periodic + Event-driven)
+  - Pressure status calculations with configurable thresholds
+  - Color mapping for visual indicators
+
+### Changed
+- **GUI Improvements**
+  - Redesigned sensor cards with better spacing and alignment
+  - Supplier information displayed prominently below sensor ID
+  - Pressure threshold display (26 PSI critical, 28 PSI low, 44 PSI high)
+  - Enhanced log messages with pressure status icons
+  - Stats label now includes warning count: "Packets: X | Sensors: Y | Warnings: Z"
+  
+- **Decoder Enhancements**
+  - TPMSReading dataclass now includes supplier and transmission_type fields
+  - Added `get_pressure_status()` method for status classification
+  - Added `get_pressure_color()` method for visual feedback
+  - Schrader decoder now reports "Schrader Electronics" as supplier
+  - Siemens decoder now reports "Siemens/Continental" as supplier
+
+### Fixed
+- Pressure thresholds now properly calibrated:
+  - CRITICAL: < 26 PSI (< 179 kPa)
+  - LOW: 26-28 PSI (179-193 kPa)
+  - NORMAL: 28-44 PSI (193-303 kPa)
+  - HIGH: > 44 PSI (> 303 kPa)
+
 ## [0.4.1] - 2025-12-22
 ### Fixed
 - **TPMS Monitor Stop Button**

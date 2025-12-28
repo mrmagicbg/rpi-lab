@@ -41,6 +41,8 @@ class TPMSReading:
     protocol: str = "Unknown"
     raw_hex: str = ""
     timestamp: str = ""
+    supplier: Optional[str] = None  # e.g., "Schrader", "Siemens", "Continental"
+    transmission_type: Optional[str] = None  # e.g., "Periodic", "Event-driven"
     
     def __post_init__(self):
         if not self.timestamp:
@@ -51,6 +53,31 @@ class TPMSReading:
             self.pressure_psi = self.pressure_kpa * 0.145038
         elif self.pressure_psi and not self.pressure_kpa:
             self.pressure_kpa = self.pressure_psi / 0.145038
+    
+    def get_pressure_status(self) -> str:
+        """Get pressure status indicator"""
+        if not self.pressure_psi:
+            return "UNKNOWN"
+        if self.pressure_psi < 26:
+            return "CRITICAL"
+        elif self.pressure_psi < 28:
+            return "LOW"
+        elif self.pressure_psi > 44:
+            return "HIGH"
+        else:
+            return "NORMAL"
+    
+    def get_pressure_color(self) -> str:
+        """Get color code for pressure status"""
+        status = self.get_pressure_status()
+        color_map = {
+            "CRITICAL": "#ff0000",  # Red
+            "LOW": "#ff9900",       # Orange
+            "NORMAL": "#00ff00",    # Green
+            "HIGH": "#ffff00",      # Yellow
+            "UNKNOWN": "#666666"    # Gray
+        }
+        return color_map.get(status, "#666666")
     
     def to_dict(self) -> Dict:
         """Convert to dictionary for logging/display"""
@@ -64,6 +91,8 @@ class TPMSReading:
             'rssi': self.signal_strength,
             'lqi': self.link_quality,
             'protocol': self.protocol,
+            'supplier': self.supplier,
+            'pressure_status': self.get_pressure_status(),
             'raw_hex': self.raw_hex
         }
 
@@ -166,7 +195,9 @@ class TPMSDecoder:
             pressure_kpa=pressure_kpa,
             temperature_c=temperature_c,
             battery_low=battery_low,
-            protocol="Schrader"
+            protocol="Schrader",
+            supplier="Schrader Electronics",
+            transmission_type="Periodic (60s) + Event-driven"
         )
     
     def _decode_siemens(self, data: bytes) -> Optional[TPMSReading]:
@@ -208,7 +239,9 @@ class TPMSDecoder:
             pressure_kpa=pressure_kpa,
             temperature_c=temperature_c,
             battery_low=battery_low,
-            protocol="Siemens/VDO"
+            protocol="Siemens/VDO",
+            supplier="Siemens/Continental",
+            transmission_type="Periodic (60s) + Event-driven"
         )
     
     def _decode_generic_manchester(self, data: bytes) -> Optional[TPMSReading]:

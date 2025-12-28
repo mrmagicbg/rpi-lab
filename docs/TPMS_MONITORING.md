@@ -92,7 +92,45 @@ python tpms_monitor_gui.py
 
 **From Main GUI**: Click "📡 TPMS Monitor" button
 
-### 3. RF Capture Tool (`rf/CC1101/rx_profile_demo`)
+### 3. TPMS Logger (`rf/tpms_logger.py`)
+Session-based logging with CSV and JSON export:
+- Automatic session file naming with timestamps
+- CSV export with pressure/temperature/battery/RSSI data
+- JSON export with summary statistics
+- Session analysis tools
+- Calculates min/max/avg values
+- Tracks warning counts (low battery, abnormal pressure)
+
+**Example Usage**:
+```python
+from rf.tpms_logger import TPMSLogger
+from rf.tpms_decoder import TPMSReading
+
+# Create logger (default: ~/rpi-lab/logs/tpms/)
+logger = TPMSLogger()
+
+# Add readings during capture session
+logger.add_reading(reading)
+
+# Export at end of session
+files = logger.export_all()  # Returns {'csv': path, 'json': path}
+
+# Get summary
+summary = logger.get_summary()
+print(f"Logged {summary['reading_count']} readings from {summary['unique_sensors']} sensors")
+```
+
+**Log Locations**:
+- Default: `~/rpi-lab/logs/tpms/`
+- Format: `tpms_session_YYYYMMDD_HHMMSS.csv` / `.json`
+
+**Pressure Status Classification**:
+- **CRITICAL**: < 26 PSI (< 179 kPa) - Red indicator
+- **LOW**: 26-28 PSI (179-193 kPa) - Orange indicator
+- **NORMAL**: 28-44 PSI (193-303 kPa) - Green indicator
+- **HIGH**: > 44 PSI (> 303 kPa) - Yellow indicator
+
+### 4. RF Capture Tool (`rf/CC1101/rx_profile_demo`)
 C++ binary for CC1101 radio control:
 - TPMS mode (433.92 MHz, Manchester encoding)
 - IoT mode (868 MHz, OOK/FSK)

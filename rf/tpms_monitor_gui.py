@@ -108,7 +108,7 @@ class TPMSMonitorGUI:
         # Stats
         self.stats_label = tk.Label(
             control_frame,
-            text="Packets: 0 | Sensors: 0",
+            text="Packets: 0 | Sensors: 0 | Warnings: 0",
             font=('Arial', 10),
             fg='#666666',
             bg='#2d2d2d'
@@ -325,8 +325,12 @@ class TPMSMonitorGUI:
                     # Update or add sensor
                     self.sensors[reading.sensor_id] = reading
                     self.root.after(0, self._update_sensor_display)
+                    
+                    # Log with pressure status
+                    pressure_status = reading.get_pressure_status()
+                    status_icon = "⚠️" if pressure_status != "NORMAL" else "✓"
                     self.root.after(0, lambda: self.log(
-                        f"Sensor {reading.sensor_id}: {reading.pressure_psi:.1f} PSI, "
+                        f"{status_icon} Sensor {reading.sensor_id}: {reading.pressure_psi:.1f} PSI ({pressure_status}), "
                         f"{reading.temperature_c:.1f}°C [{reading.protocol}]"
                     ))
                 else:
@@ -334,9 +338,10 @@ class TPMSMonitorGUI:
                         f"Unknown packet: {raw_bytes.hex()[:20]}...", "DEBUG"
                     ))
                 
-                # Update stats
+                # Update stats with warning count
+                warning_count = sum(1 for r in self.sensors.values() if r.get_pressure_status() != "NORMAL")
                 self.root.after(0, lambda: self.stats_label.config(
-                    text=f"Packets: {packet_count} | Sensors: {len(self.sensors)}"
+                    text=f"Packets: {packet_count} | Sensors: {len(self.sensors)} | Warnings: {warning_count}"
                 ))
                 
             except queue.Empty:
@@ -367,129 +372,227 @@ class TPMSMonitorGUI:
             self._create_sensor_card(sensor_id, reading)
     
     def _create_sensor_card(self, sensor_id: str, reading: TPMSReading):
-        """Create a display card for one sensor"""
-        card = tk.Frame(self.sensor_frame, bg='#2d2d2d', relief='raised', bd=3)
+        """Create a display card for one sensor with enhanced visuals"""
+        # Determine card color based on pressure status
+        pressure_status = reading.get_pressure_status()
+        status_color_map = {
+            "CRITICAL": "#3d0000",  # Dark red
+            "LOW": "#3d2200",       # Dark orange
+            "NORMAL": "#003d00",    # Dark green
+            "HIGH": "#3d3d00",      # Dark yellow
+            "UNKNOWN": "#1e1e1e"    # Dark gray
+        }
+        card_bg = status_color_map.get(pressure_status, "#2d2d2d")
+        
+        card = tk.Frame(self.sensor_frame, bg=card_bg, relief='raised', bd=2)
         card.pack(fill='x', padx=10, pady=5)
         
-        # Header
+        # Header with supplier info
         header = tk.Frame(card, bg='#1e5fa8')
         header.pack(fill='x')
         
+        # Sensor ID and supplier
+        header_left = tk.Frame(header, bg='#1e5fa8')
+        header_left.pack(side='left', fill='x', expand=True)
+        
         tk.Label(
-            header,
-            text=f"🚗 Sensor: {sensor_id}",
-            font=('Arial', 14, 'bold'),
+            header_left,
+            text=f"🚗 {sensor_id}",
+            font=('Arial', 13, 'bold'),
             fg='white',
             bg='#1e5fa8',
             padx=10,
             pady=5
         ).pack(side='left')
         
+        if reading.supplier:
+            tk.Label(
+                header_left,
+                text=f"({reading.supplier})",
+                font=('Arial', 9),
+                fg='#cccccc',
+                bg='#1e5fa8',
+                padx=5
+            ).pack(side='left')
+        
+        # Protocol badge
         tk.Label(
             header,
             text=f"{reading.protocol}",
-            font=('Arial', 10),
-            fg='#cccccc',
+            font=('Arial', 9),
+            fg='#00ff88',
             bg='#1e5fa8',
             padx=10
         ).pack(side='right')
         
-        # Data grid
-        data_frame = tk.Frame(card, bg='#2d2d2d')
-        data_frame.pack(fill='x', padx=15, pady=10)
+        # Data grid with improved layout
+        data_frame = tk.Frame(card, bg=card_bg)
+        data_frame.pack(fill='both', expand=True, padx=15, pady=10)
         
-        # Pressure
+        # Pressure with status indicator
         if reading.pressure_psi:
-            pressure_frame = tk.Frame(data_frame, bg='#2d2d2d')
-            pressure_frame.pack(side='left', padx=20)
+            pressure_frame = tk.Frame(data_frame, bg=card_bg)
+            pressure_frame.pack(side='left', padx=15, pady=5)
+            
+            pressure_color = reading.get_pressure_color()
+            status_indicator = f"●"  # Filled circle indicator
             
             tk.Label(
                 pressure_frame,
-                text="🔵 PRESSURE",
-                font=('Arial', 9),
-                fg='#888888',
-                bg='#2d2d2d'
+                text=f"{status_indicator} PRESSURE ({pressure_status})",
+                font=('Arial', 8),
+                fg=pressure_color,
+                bg=card_bg
             ).pack()
             
             tk.Label(
                 pressure_frame,
                 text=f"{reading.pressure_psi:.1f} PSI",
                 font=('Arial', 18, 'bold'),
-                fg='#4ecdc4',
-                bg='#2d2d2d'
+                fg=pressure_color,
+                bg=card_bg
             ).pack()
             
             tk.Label(
                 pressure_frame,
                 text=f"({reading.pressure_kpa:.0f} kPa)",
                 font=('Arial', 9),
-                fg='#666666',
-                bg='#2d2d2d'
+                fg='#888888',
+                bg=card_bg
             ).pack()
         
-        # Temperature
+        # Temperature with icon
         if reading.temperature_c is not None:
-            temp_frame = tk.Frame(data_frame, bg='#2d2d2d')
-            temp_frame.pack(side='left', padx=20)
+            temp_frame = tk.Frame(data_frame, bg=card_bg)
+            temp_frame.pack(side='left', padx=15, pady=5)
             
             tk.Label(
                 temp_frame,
-                text="🌡️ TEMPERATURE",
-                font=('Arial', 9),
+                text="🌡️ TEMP",
+                font=('Arial', 8),
                 fg='#888888',
-                bg='#2d2d2d'
+                bg=card_bg
             ).pack()
             
             temp_f = reading.temperature_c * 9/5 + 32
             tk.Label(
                 temp_frame,
                 text=f"{reading.temperature_c:.1f}°C",
-                font=('Arial', 18, 'bold'),
+                font=('Arial', 16, 'bold'),
                 fg='#ff6b6b',
-                bg='#2d2d2d'
+                bg=card_bg
             ).pack()
             
             tk.Label(
                 temp_frame,
                 text=f"({temp_f:.1f}°F)",
-                font=('Arial', 9),
-                fg='#666666',
-                bg='#2d2d2d'
-            ).pack()
-        
-        # Battery & Signal
-        info_frame = tk.Frame(data_frame, bg='#2d2d2d')
-        info_frame.pack(side='left', padx=20)
-        
-        if reading.battery_low is not None:
-            battery_color = '#ff0000' if reading.battery_low else '#00ff00'
-            battery_text = 'LOW ⚠️' if reading.battery_low else 'OK ✓'
-            tk.Label(
-                info_frame,
-                text=f"🔋 Battery: {battery_text}",
-                font=('Arial', 10),
-                fg=battery_color,
-                bg='#2d2d2d'
-            ).pack()
-        
-        if reading.signal_strength:
-            tk.Label(
-                info_frame,
-                text=f"📶 RSSI: {reading.signal_strength} dBm",
-                font=('Arial', 9),
+                font=('Arial', 8),
                 fg='#888888',
-                bg='#2d2d2d'
+                bg=card_bg
             ).pack()
         
-        # Timestamp
+        # Battery status with large indicator
+        if reading.battery_low is not None:
+            battery_frame = tk.Frame(data_frame, bg=card_bg)
+            battery_frame.pack(side='left', padx=15, pady=5)
+            
+            if reading.battery_low:
+                battery_color = '#ff0000'
+                battery_text = '🔴 LOW'
+                battery_status = 'CRITICAL'
+            else:
+                battery_color = '#00ff00'
+                battery_text = '🟢 OK'
+                battery_status = 'Good'
+            
+            tk.Label(
+                battery_frame,
+                text="🔋 BATTERY",
+                font=('Arial', 8),
+                fg='#888888',
+                bg=card_bg
+            ).pack()
+            
+            tk.Label(
+                battery_frame,
+                text=battery_text,
+                font=('Arial', 14, 'bold'),
+                fg=battery_color,
+                bg=card_bg
+            ).pack()
+            
+            tk.Label(
+                battery_frame,
+                text=battery_status,
+                font=('Arial', 8),
+                fg=battery_color,
+                bg=card_bg
+            ).pack()
+        
+        # Signal quality (RSSI/LQI)
+        if reading.signal_strength:
+            signal_frame = tk.Frame(data_frame, bg=card_bg)
+            signal_frame.pack(side='left', padx=15, pady=5)
+            
+            # Determine signal strength indicator
+            rssi = reading.signal_strength
+            if rssi > -70:
+                signal_quality = "Excellent"
+                signal_color = "#00ff00"
+            elif rssi > -85:
+                signal_quality = "Good"
+                signal_color = "#00ff88"
+            elif rssi > -95:
+                signal_quality = "Fair"
+                signal_color = "#ffff00"
+            else:
+                signal_quality = "Poor"
+                signal_color = "#ff9900"
+            
+            tk.Label(
+                signal_frame,
+                text="📶 SIGNAL",
+                font=('Arial', 8),
+                fg='#888888',
+                bg=card_bg
+            ).pack()
+            
+            tk.Label(
+                signal_frame,
+                text=f"{rssi} dBm",
+                font=('Arial', 12, 'bold'),
+                fg=signal_color,
+                bg=card_bg
+            ).pack()
+            
+            tk.Label(
+                signal_frame,
+                text=signal_quality,
+                font=('Arial', 8),
+                fg=signal_color,
+                bg=card_bg
+            ).pack()
+        
+        # Timestamp at bottom
+        footer = tk.Frame(card, bg=card_bg)
+        footer.pack(fill='x', padx=15, pady=(5, 10))
+        
         tk.Label(
-            card,
-            text=f"Last seen: {reading.timestamp}",
-            font=('Arial', 8),
+            footer,
+            text=f"⏱️ Last: {reading.timestamp}",
+            font=('Arial', 7),
             fg='#555555',
-            bg='#2d2d2d',
-            pady=5
-        ).pack()
+            bg=card_bg
+        ).pack(side='left')
+        
+        if reading.transmission_type:
+            tk.Label(
+                footer,
+                text=f"📡 {reading.transmission_type}",
+                font=('Arial', 7),
+                fg='#555555',
+                bg=card_bg
+            ).pack(side='right')
     
     def close_window(self):
         """Close the window"""

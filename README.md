@@ -149,10 +149,16 @@ Real-time tire pressure monitoring system using CC1101 RF transceiver.
 ### Features
 
 - **Live Sensor Display**: Shows all detected TPMS sensors with individual cards
-- **Pressure Monitoring**: Displays pressure in both PSI and kPa
+- **Pressure Monitoring**: Displays pressure in both PSI and kPa with status indicators
+  - **CRITICAL** (red): < 26 PSI
+  - **LOW** (orange): 26-28 PSI
+  - **NORMAL** (green): 28-44 PSI
+  - **HIGH** (yellow): > 44 PSI
 - **Temperature Display**: Shows tire temperature in °C and °F
-- **Battery Status**: Indicates low battery warnings from sensors
-- **Signal Quality**: RSSI and LQI indicators for each sensor
+- **Battery Status**: Indicates low/critical battery warnings from sensors with visual alerts
+- **Signal Quality**: RSSI assessment with quality indicators (Excellent/Good/Fair/Poor)
+- **Supplier Information**: Identifies sensor manufacturer (Schrader, Siemens/Continental)
+- **Data Export**: Session-based CSV and JSON logging with summary statistics
 - **Protocol Support**: 
   - Schrader (EG53MA4, G4) - 433.92 MHz
   - Siemens/VDO (Continental) - 433.92 MHz
@@ -190,7 +196,12 @@ sudo bash /opt/rpi-lab/install/install_rf.sh
 2. **Standalone**: `python /opt/rpi-lab/rf/tpms_monitor_gui.py`
 3. **Click "Start Capture"** to begin monitoring
 4. **Trigger sensors**: Drive vehicle or use TPMS activation tool
-5. **View results**: Sensor cards appear showing pressure, temp, battery
+5. **View results**: Sensor cards appear showing pressure, temp, battery, and supplier info
+
+**Data Logging**:
+- All sessions are automatically logged to `~/rpi-lab/logs/tpms/`
+- Export formats: CSV and JSON
+- Summary statistics included (min/max/avg values)
 
 **Full Documentation**: See [`docs/TPMS_MONITORING.md`](docs/TPMS_MONITORING.md)
 
