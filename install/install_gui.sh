@@ -39,15 +39,30 @@ echo "[install_gui] Installing rpi_gui systemd service..."
 cp /opt/rpi-lab/gui/rpi_gui.service /etc/systemd/system/rpi_gui.service
 chmod 644 /etc/systemd/system/rpi_gui.service
 
-# Configure sudoers for passwordless reboot
+# Configure sudoers for passwordless reboot and GPIO access
 SUDOERS_FILE="/etc/sudoers.d/rpi-lab"
 if [ ! -f "$SUDOERS_FILE" ]; then
-    echo "[install_gui] Configuring passwordless sudo reboot..."
-    echo "mrmagic ALL=(ALL) NOPASSWD: /sbin/reboot" > "$SUDOERS_FILE"
+    echo "[install_gui] Configuring sudoers for passwordless reboot..."
+    cat > "$SUDOERS_FILE" << 'SUDOERS'
+# RPI Lab - Allow mrmagic user to reboot without password
+mrmagic ALL=(ALL) NOPASSWD: /sbin/reboot
+
+# Allow GPIO access via python without password
+mrmagic ALL=(ALL) NOPASSWD: /opt/rpi-lab/.venv/bin/python
+SUDOERS
     chmod 440 "$SUDOERS_FILE"
-    echo "[install_gui] Sudoers configured at $SUDOERS_FILE"
+    echo "[install_gui] ✓ Sudoers configured at $SUDOERS_FILE"
 else
     echo "[install_gui] Sudoers file already exists: $SUDOERS_FILE"
+fi
+
+# Add mrmagic user to gpio group for hardware access
+echo "[install_gui] Adding mrmagic user to gpio group..."
+if ! id -nG mrmagic | grep -qw gpio; then
+    usermod -a -G gpio mrmagic
+    echo "[install_gui] ✓ Added mrmagic to gpio group"
+else
+    echo "[install_gui] User already in gpio group"
 fi
 
 # Enable auto-login for mrmagic user

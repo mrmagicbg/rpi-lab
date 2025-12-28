@@ -213,12 +213,12 @@ The RPI Lab includes support for DHT22 (AM2302) temperature and humidity sensors
 ### Hardware Requirements
 
 - DHT22/AM2302 sensor module
-- 3 jumper wires (or 4 if not using built-in pull-up)
+- 3 jumper wires (or 4 if using external pull-up resistor)
 - Optional: 4.7kΩ resistor (pull-up between VCC and DATA)
 
 ### Wiring Diagram
 
-**Quick Reference:**
+**Quick Reference (Default Configuration):**
 
 | DHT22 Pin | Raspberry Pi Pin | Description |
 |-----------|------------------|-------------|
@@ -227,23 +227,36 @@ The RPI Lab includes support for DHT22 (AM2302) temperature and humidity sensors
 | Pin 3 (NULL) | Not connected | - |
 | Pin 4 (GND) | Pin 6 (GND) | Ground |
 
-**Detailed wiring documentation:** See [`docs/DHT22_WIRING.md`](docs/DHT22_WIRING.md)
+**Physical Pin Layout Reference:**
+```
+   [USB]
+    ___
+   | 2 | 1  (3.3V) ← DHT22 VCC
+   | 4 | 3
+   | 6 | 5  (GND)  ← DHT22 GND
+   | 8 | 7  (GPIO4) ← DHT22 DATA
+   |10 | 9
+   ...
+```
 
 ### Software Installation
 
-1. Install system dependencies:
+1. Initial setup (one-time, already handled by venv_setup.sh):
 
 ```bash
-sudo apt-get install -y libgpiod2 python3-dev
-```
+# Install system dependencies
+sudo apt-get install -y python3-full python3-dev build-essential
 
-2. Install Python dependencies (automatically handled by venv_setup.sh):
-
-```bash
+# Create virtual environment
 cd /opt/rpi-lab
+python3 -m venv .venv
 source .venv/bin/activate
+
+# Install Python packages
 pip install -r requirements.txt
 ```
+
+The `requirements.txt` already includes `gpiozero==2.0.1` for DHT22 support.
 
 ### Testing the Sensor
 
@@ -252,15 +265,26 @@ Test DHT22 before using in GUI:
 ```bash
 cd /opt/rpi-lab
 source .venv/bin/activate
-python3 sensors/dht22.py
+
+# Test sensor reading
+python3 -m sensors.dht22
 ```
 
-Expected output:
+**Expected output:**
 ```
+2025-12-28 16:56:36,408 - __main__ - INFO - DHT22 sensor initialized on GPIO4
 Reading from DHT22 sensor on GPIO4...
 Temperature: 23.5°C
 Humidity: 45.2%
 ```
+
+**Troubleshooting sensor reading failures:**
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `N/A` readings | Sensor not wired correctly | Check wiring, verify GPIO4 connections |
+| `checksum failed` | Data corruption | Ensure wires are short, add pull-up resistor |
+| `timeout` | Sensor taking too long to respond | Move sensor away from electrical noise |
 
 ### Using Sensor in GUI
 
@@ -269,24 +293,52 @@ Humidity: 45.2%
    sudo systemctl start rpi_gui.service
    ```
 
-2. Touch "🌡️ Sensor Readings" button
+2. **Sensor Display** (top of screen):
+   - 🌡️ **Temperature** - Current reading in °C (red text)
+   - 💧 **Humidity** - Current reading in % (cyan text)
+   - Status line shows last update time or warning if not connected
 
-3. View temperature and humidity readings
+3. **Auto-Refresh**: Readings update every 5 seconds automatically
 
-4. Touch "🔄 Refresh" to update readings
-
-**Note:** If sensor is not connected, GUI will display "N/A" with warning message.
+4. **Connection Status**:
+   - ✓ Green = Connected and reading successfully
+   - ⚠️ Orange/Yellow = Sensor found but readings failed
+   - ⚠️ Red = Sensor not connected or library issue
 
 ### Changing GPIO Pin
 
 Default GPIO pin is **GPIO4 (BCM numbering, physical pin 7)**.
 
-To use a different pin, edit `gui/rpi_gui.py`:
+To use a different pin, edit `sensors/dht22.py`:
 
 ```python
-# Initialize DHT22 sensor (change GPIO pin here)
-DHT_SENSOR = DHT22Sensor(gpio_pin=17)  # Change to desired GPIO number
+# Line 20 - Change DEFAULT_DHT_PIN to your desired GPIO
+DEFAULT_DHT_PIN = 4  # Change this number (e.g., 17, 22, 27)
 ```
+
+Then update the GUI to use the same pin in `gui/rpi_gui.py`:
+
+```python
+# Line 37 - Update GPIO pin initialization
+DHT_SENSOR = DHT22Sensor(gpio_pin=4)  # Change to match above
+```
+
+### Sensor Module Details
+
+The DHT22Sensor class (`sensors/dht22.py`) provides:
+
+- **read()** - Returns (humidity, temperature) tuple or (None, None) on error
+- **read_formatted()** - Returns formatted strings ("23.5°C", "45.2%")
+- **Automatic retry logic** - Handles transient read failures gracefully
+- **Error logging** - Detailed messages for debugging
+
+### Data Sheet Reference
+
+- **Temperature Range**: -40°C to +80°C (±0.5°C accuracy)
+- **Humidity Range**: 0% to 100% (±2% RH accuracy)
+- **Sampling Rate**: Minimum 2 seconds between reads
+- **Protocol**: 1-Wire (custom timing-based protocol)
+- **Power**: 3.3V DC, ~2.5mA typical
 
 GitHub Deployment Workflow
 ---------------------------

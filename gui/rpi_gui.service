@@ -13,11 +13,9 @@ ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_gui.py
 Restart=on-failure
 RestartSec=10
 User=mrmagic
-WorkingDirectory=/opt/rpi-lab/gui
-
-# Allow reboot via sudo without password
-# Add to /etc/sudoers.d/rpi-lab:
-#   mrmagic ALL=(ALL) NOPASSWD: /sbin/reboot
+WorkingDirectory=/opt/rpi-lab
+# Allow GPIO access for DHT22 sensor without sudo
+SupplementaryGroups=gpio
 
 [Install]
 WantedBy=graphical.target

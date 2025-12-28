@@ -5,17 +5,24 @@ Reads temperature (°C) and humidity (%) from DHT22 sensor on GPIO pin.
 """
 
 import logging
+import time
 from typing import Optional, Tuple
 
 try:
-    import Adafruit_DHT
+    from gpiozero import MCP3008, Device
+    from gpiozero.pins.rpigpio import RPiGPIOFactory
+    # Try to set up gpiozero with RPi GPIO backend
+    try:
+        Device.pin_factory = RPiGPIOFactory()
+    except:
+        pass
+    
+    # For DHT22, we'll use a pure Python implementation with gpiozero/RPi.GPIO
+    import RPi.GPIO as GPIO
     DHT_AVAILABLE = True
 except ImportError:
     DHT_AVAILABLE = False
-    logging.warning("Adafruit_DHT library not available. DHT22 sensor will be disabled.")
-
-# DHT22 sensor type
-DHT_SENSOR = Adafruit_DHT.DHT22 if DHT_AVAILABLE else None
+    logging.warning("gpiozero library not available. DHT22 sensor will be disabled.")
 
 # Default GPIO pin for DHT22 data line (BCM numbering)
 DEFAULT_DHT_PIN = 4  # GPIO4 (physical pin 7)
@@ -23,6 +30,8 @@ DEFAULT_DHT_PIN = 4  # GPIO4 (physical pin 7)
 
 class DHT22Sensor:
     """DHT22 Temperature and Humidity Sensor interface."""
+    
+    MAX_TIMINGS = 100
     
     def __init__(self, gpio_pin: int = DEFAULT_DHT_PIN):
         """
@@ -37,9 +46,15 @@ class DHT22Sensor:
         self.logger = logging.getLogger(__name__)
         
         if not self.available:
-            self.logger.warning(f"DHT22 sensor disabled - Adafruit_DHT library not installed")
+            self.logger.warning(f"DHT22 sensor disabled - gpiozero/RPi.GPIO library not installed")
         else:
-            self.logger.info(f"DHT22 sensor initialized on GPIO{gpio_pin}")
+            try:
+                GPIO.setmode(GPIO.BCM)
+                GPIO.setup(gpio_pin, GPIO.OUT)
+                self.logger.info(f"DHT22 sensor initialized on GPIO{gpio_pin}")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize DHT22 sensor: {e}")
+                self.available = False
     
     def read(self) -> Tuple[Optional[float], Optional[float]]:
         """
@@ -53,16 +68,72 @@ class DHT22Sensor:
             return None, None
         
         try:
-            # Read from DHT22 sensor
-            # Returns: (humidity, temperature) or (None, None) on error
-            humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, self.gpio_pin)
+            # Send start signal
+            GPIO.setup(self.gpio_pin, GPIO.OUT)
+            GPIO.output(self.gpio_pin, GPIO.LOW)
+            time.sleep(0.02)  # 20ms low pulse
+            GPIO.output(self.gpio_pin, GPIO.HIGH)
             
-            if humidity is not None and temperature is not None:
-                self.logger.debug(f"DHT22 reading: {temperature:.1f}°C, {humidity:.1f}%")
-                return humidity, temperature
-            else:
-                self.logger.warning("Failed to read from DHT22 sensor")
+            # Read sensor response
+            GPIO.setup(self.gpio_pin, GPIO.IN)
+            
+            # Wait for sensor to pull low
+            counter = 0
+            while GPIO.input(self.gpio_pin) == GPIO.HIGH and counter < self.MAX_TIMINGS:
+                counter += 1
+                time.sleep(0.00001)
+            
+            if counter >= self.MAX_TIMINGS:
+                self.logger.warning("DHT22 sensor timeout (no response)")
                 return None, None
+            
+            # Read 40 bits of data
+            bits = []
+            for i in range(40):
+                counter = 0
+                while GPIO.input(self.gpio_pin) == GPIO.LOW and counter < self.MAX_TIMINGS:
+                    counter += 1
+                    time.sleep(0.00001)
+                
+                low_time = counter
+                counter = 0
+                while GPIO.input(self.gpio_pin) == GPIO.HIGH and counter < self.MAX_TIMINGS:
+                    counter += 1
+                    time.sleep(0.00001)
+                
+                high_time = counter
+                
+                # High pulse > 50us = 1, else 0
+                if high_time > low_time:
+                    bits.append(1)
+                else:
+                    bits.append(0)
+            
+            # Convert bits to bytes
+            humidity_int = (bits[0] << 7) + (bits[1] << 6) + (bits[2] << 5) + (bits[3] << 4) + \
+                          (bits[4] << 3) + (bits[5] << 2) + (bits[6] << 1) + bits[7]
+            humidity_dec = (bits[8] << 7) + (bits[9] << 6) + (bits[10] << 5) + (bits[11] << 4) + \
+                          (bits[12] << 3) + (bits[13] << 2) + (bits[14] << 1) + bits[15]
+            
+            temp_int = (bits[16] << 7) + (bits[17] << 6) + (bits[18] << 5) + (bits[19] << 4) + \
+                      (bits[20] << 3) + (bits[21] << 2) + (bits[22] << 1) + bits[23]
+            temp_dec = (bits[24] << 7) + (bits[25] << 6) + (bits[26] << 5) + (bits[27] << 4) + \
+                      (bits[28] << 3) + (bits[29] << 2) + (bits[30] << 1) + bits[31]
+            
+            checksum = (bits[32] << 7) + (bits[33] << 6) + (bits[34] << 5) + (bits[35] << 4) + \
+                      (bits[36] << 3) + (bits[37] << 2) + (bits[38] << 1) + bits[39]
+            
+            # Check checksum
+            check = (humidity_int + humidity_dec + temp_int + temp_dec) & 0xFF
+            if check != checksum:
+                self.logger.warning("DHT22 checksum failed")
+                return None, None
+            
+            humidity = (humidity_int + humidity_dec / 100.0)
+            temperature = (temp_int + temp_dec / 100.0)
+            
+            self.logger.debug(f"DHT22 reading: {temperature:.1f}°C, {humidity:.1f}%")
+            return humidity, temperature
                 
         except Exception as e:
             self.logger.error(f"Error reading DHT22 sensor: {e}")
@@ -101,7 +172,7 @@ def test_sensor(gpio_pin: int = DEFAULT_DHT_PIN):
     
     if not sensor.available:
         print("ERROR: DHT22 sensor library not available")
-        print("Install with: sudo pip3 install Adafruit_DHT")
+        print("Install with: pip install gpiozero")
         sys.exit(1)
     
     print(f"Reading from DHT22 sensor on GPIO{gpio_pin}...")

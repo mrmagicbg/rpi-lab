@@ -5,6 +5,5 @@ rich==13.3.0
 loguru==0.7.0
 evdev==1.9.2
 
-# DHT22 Temperature/Humidity Sensor
-# Install system package first: sudo apt-get install libgpiod2
-Adafruit-DHT==1.4.0
+# DHT22 Temperature/Humidity Sensor (uses pure Python with RPi.GPIO)
+gpiozero==2.0.1
