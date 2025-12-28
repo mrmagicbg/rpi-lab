@@ -1,3 +1,228 @@
+# RPI Lab BME690 Sensor - Update Summary
+
+**Date**: December 28, 2025  
+**Status**: ✅ Ready for Deployment (dry-run tested)  
+**Scope**: Migration from DHT22 (GPIO) to Pimoroni BME690 (I2C)
+
+---
+
+## Overview
+
+The project now uses the Pimoroni BME690 environmental sensor (temperature, humidity, pressure, gas) over I2C. Code, GUI, service, requirements and documentation have been updated accordingly.
+
+## What Changed
+
+### 1. Core Sensor Implementation
+
+**File**: `sensors/bme690.py`
+
+**Highlights**:
+- `bme690` PyPI library integration
+- I2C initialization (primary 0x76, fallback 0x77)
+- Oversampling/filter defaults and gas heater profile
+- Dry-run mode via `BME690_DRY_RUN=1` (simulated readings)
+- Provides: `read()` and `read_formatted()`
+
+### 2. Installation Scripts
+
+**File**: `install/venv_setup.sh`
+- Added `python3-smbus` and `i2c-tools` installation for I2C support
+
+**File**: `install/install_gui.sh`
+- Added automatic `i2c` group configuration for user `mrmagic`
+- Sudoers remains configured for passwordless reboot
+
+### 3. Service Configuration
+
+**File**: `gui/rpi_gui.service`
+- Switched to `SupplementaryGroups=i2c` for I2C access
+- Added `Environment=BME690_DRY_RUN=1` for development
+
+### 4. Dependencies
+
+**File**: `requirements.txt`
+- Added `bme690` and `smbus2`
+- Removed `gpiozero`
+
+### 5. Documentation
+
+**Files**: `README.md`, `docs/BME690_SETUP.md`, `docs/BME690_WIRING.md`, `DOCUMENTATION_INDEX.md`
+- Updated and consolidated to reflect BME690 wiring, setup, and testing
+- Removed all DHT22 documentation files
+
+---
+
+## Installation Quick Start
+
+```bash
+# 1. Update system
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y python3-full python3-dev build-essential git i2c-tools python3-smbus
+
+# 2. Clone and copy to /opt
+git clone https://github.com/mrmagicbg/rpi-lab.git ~/rpi-lab
+sudo rsync -a --chown=root:root ~/rpi-lab/ /opt/rpi-lab/
+
+# 3. Run installation scripts
+sudo /opt/rpi-lab/install/venv_setup.sh
+sudo /opt/rpi-lab/install/display_install.sh
+sudo /opt/rpi-lab/install/install_gui.sh
+
+# 4. Enable I2C and test sensor (dry-run by default via service)
+sudo raspi-config nonint do_i2c 0
+cd /opt/rpi-lab
+source .venv/bin/activate
+python3 -m sensors.bme690
+
+# 5. Reboot
+sudo reboot
+```
+
+After reboot, GUI appears fullscreen with BME690 readings.
+
+---
+
+## Hardware Wiring
+
+See: `docs/BME690_WIRING.md`
+
+---
+
+## Testing & Verification
+
+### Sensor Direct Test
+```bash
+cd /opt/rpi-lab
+source .venv/bin/activate
+python3 -m sensors.bme690
+```
+
+### GUI Verification (after hardware arrival)
+- [ ] GUI appears on boot automatically (fullscreen)
+- [ ] Temperature, humidity, pressure, gas resistance visible (no N/A)
+- [ ] Status shows last update time and heater stability
+- [ ] Readings update every 5 seconds
+
+---
+
+## Key Improvements
+
+| Improvement | Before | After |
+|------------|--------|-------|
+| **Sensor** | DHT22 (temp, humidity) | BME690 (temp, humidity, pressure, gas) |
+| **Bus** | GPIO (timing-sensitive) | I2C (robust, standard) |
+| **Library** | Mixed/legacy | Pimoroni `bme690` (maintained) |
+| **Permissions** | GPIO group | I2C group |
+| **Testing** | Limited | Dry-run support for development |
+
+---
+
+## Files Modified Summary
+
+### Core Code
+- ✅ `sensors/bme690.py` - New BME690 module with dry-run
+- ✅ `requirements.txt` - Updated dependencies
+- ✅ `gui/rpi_gui.py` - Updated to display BME690 readings
+
+### Installation & Deployment
+- ✅ `install/venv_setup.sh` - Added I2C packages
+- ✅ `install/install_gui.sh` - Added i2c group configuration
+- ✅ `gui/rpi_gui.service` - Added I2C group and dry-run env
+
+### Documentation
+- ✅ `README.md` - Updated to BME690
+- ✨ `docs/BME690_SETUP.md` - NEW: Setup guide
+- ✨ `docs/BME690_WIRING.md` - NEW: Wiring reference
+- ✅ `DOCUMENTATION_INDEX.md` - Consolidated BME690 docs
+
+---
+
+## Deployment Workflow
+
+### Development → Pi Deployment
+
+```bash
+# 1. On your development machine
+cd ~/Code/GitHub/mrmagicbg/rpi-lab
+git add .
+git commit -m "feat: BME690 sensor migration"
+git push origin main
+
+# 2. On the Raspberry Pi (or via SSH)
+sudo bash /opt/rpi-lab/deploy/quick_deploy.sh
+# OR for full deployment:
+sudo bash /opt/rpi-lab/deploy/deploy.sh
+
+# 3. Verify deployment
+sudo systemctl status rpi_gui.service
+sudo journalctl -u rpi_gui.service -f
+```
+
+---
+
+## Troubleshooting Guide
+
+| Issue | Symptom | Solution |
+|-------|---------|----------|
+| **Sensor not responding** | Reading shows "N/A" | Check I2C wiring and address (0x76/0x77) |
+| **Permission denied** | Can't access I2C | `sudo usermod -a -G i2c mrmagic` (logout/login) |
+| **Service won't start** | systemctl fails | Check logs: `sudo journalctl -u rpi_gui.service -n 50` |
+| **Sensor not detected** | No device in i2cdetect | Run `sudo i2cdetect -y 1`, verify wiring and enable I2C |
+
+---
+
+## Common Commands
+
+```bash
+# Service management
+sudo systemctl start rpi_gui.service
+sudo systemctl stop rpi_gui.service
+sudo systemctl restart rpi_gui.service
+sudo systemctl enable rpi_gui.service
+sudo systemctl status rpi_gui.service
+
+# Testing and debugging
+cd /opt/rpi-lab && source .venv/bin/activate && python3 -m sensors.bme690
+sudo journalctl -u rpi_gui.service -f
+sudo journalctl -u rpi_gui.service -n 50
+sudo journalctl -u rpi_gui.service --since "1 hour ago"
+
+# I2C verification
+sudo i2cdetect -y 1  # Show I2C devices
+
+# Permission management
+sudo usermod -a -G i2c $USER
+id $USER  # Verify group membership
+```
+
+---
+
+## Documentation Links
+
+- 📖 **Hardware & Setup**: See [docs/BME690_SETUP.md](docs/BME690_SETUP.md)
+- 📖 **Wiring Reference**: See [docs/BME690_WIRING.md](docs/BME690_WIRING.md)
+- 📚 **Project Overview**: See [README.md](README.md)
+
+---
+
+## Summary
+
+The rpi-lab project now has:
+
+✅ **Modern BME690 Support** - Well-maintained Pimoroni library  
+✅ **Complete Documentation** - Wiring, setup, troubleshooting  
+✅ **Automated Installation** - Simple setup scripts  
+✅ **Production Ready** - Proper error handling and logging  
+✅ **Easy Deployment** - GitHub-based workflow  
+✅ **GUI Integration** - Real-time sensor display built-in  
+
+**Status**: Ready for deployment and production use (hardware testing pending).
+
+---
+
+**Last Updated**: December 28, 2025  
+**Repository**: https://github.com/mrmagicbg/rpi-lab  
+**Maintainer**: mrmagicbg
 # RPI Lab DHT22 Sensor - Complete Update Summary
 
 **Date**: December 28, 2025  

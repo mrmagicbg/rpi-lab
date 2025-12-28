@@ -17,6 +17,15 @@ All notable changes to this project will be documented in this file.
 ### Removed
 - DHT22 sensor module and all DHT22-related documentation files
 
+## [0.6.1] - 2025-12-28
+### Changed
+- Consolidated and corrected documentation for BME690 migration
+- Updated `UPDATES_COMPLETE.md` to reflect I2C setup and testing
+- Cleaned `DOCUMENTATION_INDEX.md` to remove leftover DHT22 references
+
+### Fixed
+- Minor README inconsistencies in GUI features and install notes
+
 ## [0.5.1] - 2025-12-28
 ### Fixed
 - **Deployment Script**: Updated `deploy/deploy.sh` to use `gui/rpi_gui.service` instead of deleted `tui/rpi_tui.service`

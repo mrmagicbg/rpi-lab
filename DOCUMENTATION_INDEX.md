@@ -127,29 +127,26 @@ rpi-lab/
 → Pimoroni BME690 Python library: https://github.com/pimoroni/bme690-python
 → Product page & datasheet: https://shop.pimoroni.com/products/bme690-breakout
 
-→ See [DHT22_QUICK_REFERENCE.md](DHT22_QUICK_REFERENCE.md)
-
 ## ✅ Status
 
-- ✅ DHT22 module fully implemented with modern library
-- ✅ GUI integration complete and tested
-- ✅ Installation scripts updated
-- ✅ Service configuration optimized
-- ✅ Comprehensive documentation provided
-- ✅ Ready for production deployment
+- ✅ BME690 module implemented with dry-run support
+- ✅ GUI integration complete (temperature, humidity, pressure, gas)
+- ✅ Installation scripts updated for I2C tools and groups
+- ✅ Service configured for autostart and I2C access
+- ✅ Documentation consolidated (wiring, setup, README)
 
 ## 📊 Summary
 
 | Component | Status | File |
 |-----------|--------|------|
-| Sensor Module | ✅ Updated | `sensors/dht22.py` |
-| GUI Integration | ✅ Ready | `gui/rpi_gui.py` |
+| Sensor Module | ✅ Added | `sensors/bme690.py` |
+| GUI Integration | ✅ Updated | `gui/rpi_gui.py` |
 | Installation | ✅ Updated | `install/venv_setup.sh` |
 | Service Config | ✅ Updated | `gui/rpi_gui.service` |
-| Documentation | ✅ Complete | `docs/DHT22_SETUP.md` |
+| Documentation | ✅ Added | `docs/BME690_SETUP.md`, `docs/BME690_WIRING.md` |
 
 ---
 
 **Last Updated**: December 28, 2025  
-**Status**: ✅ Ready for Deployment  
+**Status**: ✅ Ready for Deployment (dry-run)  
 **Repository**: https://github.com/mrmagicbg/rpi-lab
