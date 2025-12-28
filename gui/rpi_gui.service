@@ -8,14 +8,15 @@ Type=simple
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/mrmagic/.Xauthority"
 Environment="PYTHONUNBUFFERED=1"
+Environment="BME690_DRY_RUN=1"
 ExecStartPre=/bin/sleep 5
 ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_gui.py
 Restart=on-failure
 RestartSec=10
 User=mrmagic
 WorkingDirectory=/opt/rpi-lab
-# Allow GPIO access for DHT22 sensor without sudo
-SupplementaryGroups=gpio
+# Allow I2C access for BME690 sensor without sudo
+SupplementaryGroups=i2c
 
 [Install]
 WantedBy=graphical.target

@@ -25,9 +25,9 @@ import tkinter as tk
 from tkinter import messagebox
 import logging
 
-# Import DHT22 sensor module
+# Import BME690 sensor module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from sensors.dht22 import DHT22Sensor
+from sensors.bme690 import BME690Sensor
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,8 +38,8 @@ logger = logging.getLogger('rpi_gui')
 BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 RF_SCRIPT_PATH = os.path.join(BASE_DIR, 'rf', 'setup_pi.sh')
 
-# Initialize DHT22 sensor (GPIO4 by default)
-DHT_SENSOR = DHT22Sensor(gpio_pin=4)
+# Initialize BME690 sensor (I2C 0x76 by default)
+BME_SENSOR = BME690Sensor()
 
 
 class RPILauncherGUI:
@@ -81,7 +81,7 @@ class RPILauncherGUI:
         
         sensor_title = tk.Label(
             self.sensor_frame,
-            text="DHT22 Sensor (GPIO4)",
+            text="BME690 Sensor (I2C)",
             font=('Arial', 14, 'bold'),
             fg='#00ff88',
             bg='#2d2d2d',
@@ -134,6 +134,48 @@ class RPILauncherGUI:
             bg='#2d2d2d'
         )
         self.humid_label.pack()
+
+        # Pressure display
+        press_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        press_container.pack(side='left', padx=20)
+
+        tk.Label(
+            press_container,
+            text="🧭 Pressure:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+
+        self.press_label = tk.Label(
+            press_container,
+            text="-- hPa",
+            font=('Arial', 20, 'bold'),
+            fg='#9aa0ff',
+            bg='#2d2d2d'
+        )
+        self.press_label.pack()
+
+        # Gas resistance display
+        gas_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        gas_container.pack(side='left', padx=20)
+
+        tk.Label(
+            gas_container,
+            text="🫁 Gas:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+
+        self.gas_label = tk.Label(
+            gas_container,
+            text="-- Ω",
+            font=('Arial', 20, 'bold'),
+            fg='#ffae00',
+            bg='#2d2d2d'
+        )
+        self.gas_label.pack()
         
         # Status label
         self.sensor_status = tk.Label(
@@ -254,24 +296,31 @@ class RPILauncherGUI:
     def update_sensor_readings(self):
         """Update sensor readings on main screen (called periodically)"""
         try:
-            temp_str, humid_str = DHT_SENSOR.read_formatted()
-            self.temp_label.config(text=temp_str)
-            self.humid_label.config(text=humid_str)
-            
-            if temp_str == "N/A":
+            data = BME_SENSOR.read_formatted()
+            self.temp_label.config(text=data["temperature_str"]) 
+            self.humid_label.config(text=data["humidity_str"]) 
+            self.press_label.config(text=data["pressure_str"]) 
+            self.gas_label.config(text=data["gas_res_str"]) 
+
+            if data["temperature_str"] == "N/A":
                 self.sensor_status.config(
-                    text="⚠️ Sensor not connected (check GPIO4 wiring)",
+                    text="⚠️ Sensor not connected (check I2C & address 0x76/0x77)",
                     fg='#ffaa00'
                 )
             else:
+                status_text = "✓ Last updated: " + self.get_current_time()
+                if data.get("heat_stable"):
+                    status_text += " • Gas heater stable"
                 self.sensor_status.config(
-                    text="✓ Last updated: " + self.get_current_time(),
+                    text=status_text,
                     fg='#00aa00'
                 )
         except Exception as e:
             logger.error(f"Sensor update error: {e}")
             self.temp_label.config(text="Error")
             self.humid_label.config(text="Error")
+            self.press_label.config(text="Error")
+            self.gas_label.config(text="Error")
             self.sensor_status.config(
                 text="⚠️ Sensor error",
                 fg='#ff0000'

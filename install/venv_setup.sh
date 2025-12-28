@@ -11,7 +11,7 @@ fi
 
 echo "[venv_setup] Installing system dependencies..."
 apt-get update -y || true
-apt-get install -y python3-full python3-dev build-essential || true
+apt-get install -y python3-full python3-dev build-essential python3-smbus i2c-tools || true
 
 echo "[venv_setup] Creating Python virtual environment..."
 python3 -m venv "$VENV_DIR"

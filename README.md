@@ -8,7 +8,7 @@ RPI Lab collects utilities and helpers for Raspberry Pi devices with integrated 
 - `rf/` — **TPMS tire pressure monitoring** with CC1101 RF transceiver (433 MHz)
 - `display/` — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
 - `gui/` — **Touch-friendly GUI** with TPMS monitor, sensor display, system controls
-- `sensors/` — **DHT22 temperature & humidity sensor** support
+- `sensors/` — **BME690 air quality sensor** (temperature, humidity, pressure, gas)
 - `deploy/` — GitHub-based deployment scripts for easy updates
 
 This README provides Quickstart, detailed install steps, sensor configuration, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
@@ -20,7 +20,7 @@ Table of Contents
 - Installation (detailed)
 - GUI Features
 - TPMS RF Monitor
-- DHT22 Sensor Setup
+- BME690 Sensor Setup
 - GitHub Deployment Workflow
 - Service management
 - Touch testing & debugging
@@ -64,7 +64,7 @@ Installation (detailed)
 -----------------------
 
 See the `install/` folder for helper scripts:
-- `venv_setup.sh` — Python virtualenv + dependencies (evdev, rich, loguru, Adafruit_DHT)
+- `venv_setup.sh` — Python virtualenv + dependencies (evdev, rich, loguru, bme690)
 - `display_install.sh` — Waveshare 4.3" DSI LCD Rev 2.2 display + touch overlays
 - `install_gui.sh` — **GUI mode** (X11, openbox, python3-tk, auto-login)
 - `install_rf.sh` — RF hardware setup for CC1101
@@ -121,9 +121,9 @@ The GUI application provides an intuitive touch interface optimized for the Wave
 ### Layout
 
 **Integrated Sensor Display** (top section):
-- Real-time temperature (°C) and humidity (%) readings
-- Auto-updates every 5 seconds from DHT22 sensor
-- Status line shows last update time or connection warnings
+- Real-time temperature (°C), humidity (%), pressure (hPa) and gas resistance (Ω)
+- Auto-updates every 5 seconds from BME690 sensor
+- Status line shows last update time, I2C status, and gas heater stability
 
 **4 Uniform Touch Buttons** (bottom section):
 - **📡 TPMS Monitor** - Launch RF tire pressure monitoring GUI (Blue)
@@ -205,140 +205,58 @@ sudo bash /opt/rpi-lab/install/install_rf.sh
 
 **Full Documentation**: See [`docs/TPMS_MONITORING.md`](docs/TPMS_MONITORING.md)
 
-DHT22 Sensor Setup
-------------------
+BME690 Sensor Setup
+-------------------
 
-The RPI Lab includes support for DHT22 (AM2302) temperature and humidity sensors.
+The RPI Lab now uses the Pimoroni **BME690** breakout for environmental sensing (temperature, humidity, pressure, gas).
 
-### Hardware Requirements
+### Hardware Wiring
 
-- DHT22/AM2302 sensor module
-- 3 jumper wires (or 4 if using external pull-up resistor)
-- Optional: 4.7kΩ resistor (pull-up between VCC and DATA)
+See: [`docs/BME690_WIRING.md`](docs/BME690_WIRING.md)
 
-### Wiring Diagram
+Quick reference:
 
-**Quick Reference (Default Configuration):**
-
-| DHT22 Pin | Raspberry Pi Pin | Description |
-|-----------|------------------|-------------|
-| Pin 1 (VCC) | Pin 1 (3.3V) | Power |
-| Pin 2 (DATA) | Pin 7 (GPIO4) | Data signal |
-| Pin 3 (NULL) | Not connected | - |
-| Pin 4 (GND) | Pin 6 (GND) | Ground |
-
-**Physical Pin Layout Reference:**
-```
-   [USB]
-    ___
-   | 2 | 1  (3.3V) ← DHT22 VCC
-   | 4 | 3
-   | 6 | 5  (GND)  ← DHT22 GND
-   | 8 | 7  (GPIO4) ← DHT22 DATA
-   |10 | 9
-   ...
-```
+| BME690 | Raspberry Pi Pin | Description |
+|--------|-------------------|-------------|
+| 3V3    | Pin 1             | Power |
+| SDA    | Pin 3 (GPIO2)     | I2C Data |
+| SCL    | Pin 5 (GPIO3)     | I2C Clock |
+| GND    | Pin 9             | Ground |
 
 ### Software Installation
 
-1. Initial setup (one-time, already handled by venv_setup.sh):
+Handled by `install/venv_setup.sh` and `requirements.txt` (includes `bme690`). Ensure I2C is enabled:
 
 ```bash
-# Install system dependencies
-sudo apt-get install -y python3-full python3-dev build-essential
-
-# Create virtual environment
-cd /opt/rpi-lab
-python3 -m venv .venv
-source .venv/bin/activate
-
-# Install Python packages
-pip install -r requirements.txt
+sudo raspi-config nonint do_i2c 0
+sudo apt-get install -y i2c-tools python3-smbus
 ```
-
-The `requirements.txt` already includes `gpiozero==2.0.1` for DHT22 support.
 
 ### Testing the Sensor
 
-Test DHT22 before using in GUI:
+Dry-run (no hardware):
 
 ```bash
 cd /opt/rpi-lab
 source .venv/bin/activate
-
-# Test sensor reading
-python3 -m sensors.dht22
+export BME690_DRY_RUN=1
+python3 -m sensors.bme690
 ```
 
-**Expected output:**
-```
-2025-12-28 16:56:36,408 - __main__ - INFO - DHT22 sensor initialized on GPIO4
-Reading from DHT22 sensor on GPIO4...
-Temperature: 23.5°C
-Humidity: 45.2%
-```
+Hardware test:
 
-**Troubleshooting sensor reading failures:**
-
-| Error | Cause | Fix |
-|-------|-------|-----|
-| `N/A` readings | Sensor not wired correctly | Check wiring, verify GPIO4 connections |
-| `checksum failed` | Data corruption | Ensure wires are short, add pull-up resistor |
-| `timeout` | Sensor taking too long to respond | Move sensor away from electrical noise |
-
-### Using Sensor in GUI
-
-1. Launch GUI (auto-starts on boot, or manually):
-   ```bash
-   sudo systemctl start rpi_gui.service
-   ```
-
-2. **Sensor Display** (top of screen):
-   - 🌡️ **Temperature** - Current reading in °C (red text)
-   - 💧 **Humidity** - Current reading in % (cyan text)
-   - Status line shows last update time or warning if not connected
-
-3. **Auto-Refresh**: Readings update every 5 seconds automatically
-
-4. **Connection Status**:
-   - ✓ Green = Connected and reading successfully
-   - ⚠️ Orange/Yellow = Sensor found but readings failed
-   - ⚠️ Red = Sensor not connected or library issue
-
-### Changing GPIO Pin
-
-Default GPIO pin is **GPIO4 (BCM numbering, physical pin 7)**.
-
-To use a different pin, edit `sensors/dht22.py`:
-
-```python
-# Line 20 - Change DEFAULT_DHT_PIN to your desired GPIO
-DEFAULT_DHT_PIN = 4  # Change this number (e.g., 17, 22, 27)
+```bash
+cd /opt/rpi-lab
+source .venv/bin/activate
+unset BME690_DRY_RUN
+python3 -m sensors.bme690
 ```
 
-Then update the GUI to use the same pin in `gui/rpi_gui.py`:
+### GUI Integration
 
-```python
-# Line 37 - Update GPIO pin initialization
-DHT_SENSOR = DHT22Sensor(gpio_pin=4)  # Change to match above
-```
-
-### Sensor Module Details
-
-The DHT22Sensor class (`sensors/dht22.py`) provides:
-
-- **read()** - Returns (humidity, temperature) tuple or (None, None) on error
-- **read_formatted()** - Returns formatted strings ("23.5°C", "45.2%")
-- **Automatic retry logic** - Handles transient read failures gracefully
-- **Error logging** - Detailed messages for debugging
-
-### Data Sheet Reference
-
-- **Temperature Range**: -40°C to +80°C (±0.5°C accuracy)
-- **Humidity Range**: 0% to 100% (±2% RH accuracy)
-- **Sampling Rate**: Minimum 2 seconds between reads
-- **Protocol**: 1-Wire (custom timing-based protocol)
-- **Power**: 3.3V DC, ~2.5mA typical
+- The GUI displays temperature, humidity, pressure and gas resistance.
+- Status line shows last update time and gas heater stability.
+- Fullscreen auto-start on boot via `gui/rpi_gui.service`.
 
 GitHub Deployment Workflow
 ---------------------------

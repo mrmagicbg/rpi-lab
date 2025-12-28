@@ -39,7 +39,7 @@ echo "[install_gui] Installing rpi_gui systemd service..."
 cp /opt/rpi-lab/gui/rpi_gui.service /etc/systemd/system/rpi_gui.service
 chmod 644 /etc/systemd/system/rpi_gui.service
 
-# Configure sudoers for passwordless reboot and GPIO access
+# Configure sudoers for passwordless reboot
 SUDOERS_FILE="/etc/sudoers.d/rpi-lab"
 if [ ! -f "$SUDOERS_FILE" ]; then
     echo "[install_gui] Configuring sudoers for passwordless reboot..."
@@ -47,7 +47,7 @@ if [ ! -f "$SUDOERS_FILE" ]; then
 # RPI Lab - Allow mrmagic user to reboot without password
 mrmagic ALL=(ALL) NOPASSWD: /sbin/reboot
 
-# Allow GPIO access via python without password
+# Allow running project python without password (for service)
 mrmagic ALL=(ALL) NOPASSWD: /opt/rpi-lab/.venv/bin/python
 SUDOERS
     chmod 440 "$SUDOERS_FILE"
@@ -56,13 +56,13 @@ else
     echo "[install_gui] Sudoers file already exists: $SUDOERS_FILE"
 fi
 
-# Add mrmagic user to gpio group for hardware access
-echo "[install_gui] Adding mrmagic user to gpio group..."
-if ! id -nG mrmagic | grep -qw gpio; then
-    usermod -a -G gpio mrmagic
-    echo "[install_gui] ✓ Added mrmagic to gpio group"
+# Add mrmagic user to i2c group for BME690 access
+echo "[install_gui] Adding mrmagic user to i2c group..."
+if ! id -nG mrmagic | grep -qw i2c; then
+    usermod -a -G i2c mrmagic
+    echo "[install_gui] ✓ Added mrmagic to i2c group"
 else
-    echo "[install_gui] User already in gpio group"
+    echo "[install_gui] User already in i2c group"
 fi
 
 # Enable auto-login for mrmagic user

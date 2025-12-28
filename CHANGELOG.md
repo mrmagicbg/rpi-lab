@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.6.0] - 2025-12-28
+### Changed
+- Migrated sensor from DHT22 to Pimoroni BME690 (temperature, humidity, pressure, gas)
+- GUI updated to display BME690 readings and heater stability; remains fullscreen on startup
+- Service updated to use `SupplementaryGroups=i2c` and enable dry-run via `BME690_DRY_RUN=1`
+- Requirements updated to include `bme690` and `smbus2`
+
+### Added
+- New `sensors/bme690.py` with dry-run support and formatted readings
+- Documentation: `docs/BME690_WIRING.md` and `docs/BME690_SETUP.md`
+- Updated `DOCUMENTATION_INDEX.md` for BME690
+
+### Removed
+- DHT22 sensor module and all DHT22-related documentation files
+
 ## [0.5.1] - 2025-12-28
 ### Fixed
 - **Deployment Script**: Updated `deploy/deploy.sh` to use `gui/rpi_gui.service` instead of deleted `tui/rpi_tui.service`

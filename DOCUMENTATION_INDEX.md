@@ -1,63 +1,44 @@
-# RPI Lab - DHT22 Sensor Integration Documentation Index
+# RPI Lab - BME690 Sensor Documentation Index
 
 ## 🎯 Getting Started (Pick One)
 
 ### Quick Start (5 minutes)
-👉 **[DHT22_QUICK_REFERENCE.md](DHT22_QUICK_REFERENCE.md)** - Fast wiring and installation guide
+👉 **[docs/BME690_WIRING.md](docs/BME690_WIRING.md)** - Wiring diagram and I2C setup
 
-### Complete Setup (30 minutes)
-👉 **[DEPLOYMENT_CHECKLIST_DHT22.md](DEPLOYMENT_CHECKLIST_DHT22.md)** - Step-by-step verification checklist
-
-### Understanding the Changes
-👉 **[DHT22_INTEGRATION_SUMMARY.md](DHT22_INTEGRATION_SUMMARY.md)** - What was updated and why
+### Complete Setup (15 minutes)
+👉 **[docs/BME690_SETUP.md](docs/BME690_SETUP.md)** - Step-by-step installation and testing
 
 ## 📚 Detailed Documentation
 
 ### Hardware & Wiring
-- 📖 **[docs/DHT22_SETUP.md](docs/DHT22_SETUP.md)** - Comprehensive hardware guide
-  - Wiring diagrams (with/without pull-up)
-  - GPIO pinout reference
-  - Troubleshooting procedures
-  - Technical specifications
+- 📖 **[docs/BME690_WIRING.md](docs/BME690_WIRING.md)**
+  - Raspberry Pi 3 wiring (3V3, GND, SDA, SCL)
+  - I2C address selection (0x76/0x77)
+  - Enabling I2C and group permissions
 
 ### Project Overview
 - 📖 **[README.md](README.md)** - Main project documentation
-  - DHT22 sensor setup section
+  - BME690 sensor setup section
   - Installation instructions
   - GUI features overview
   - Deployment workflow
 
-### Integration Details
-- 📖 **[DHT22_INTEGRATION_SUMMARY.md](DHT22_INTEGRATION_SUMMARY.md)** - Complete integration overview
-  - All files modified
-  - Installation quick start
-  - Testing procedures
-  - Key improvements
-
 ### Installation Status
-- 📖 **[UPDATES_COMPLETE.md](UPDATES_COMPLETE.md)** - Comprehensive update summary
-  - Overview of all changes
-  - Hardware wiring reference
-  - Testing & verification
-  - Troubleshooting guide
+- 📖 **[UPDATES_COMPLETE.md](UPDATES_COMPLETE.md)** - Update summary
 
 ## 🔧 Code Reference
 
 ### Core Sensor Module
-- `sensors/dht22.py` - DHT22 sensor implementation
-  - Modern gpiozero library
-  - Custom DHT22 protocol decoder
-  - Checksum validation
-  - Backward-compatible API
+- `sensors/bme690.py` - BME690 sensor implementation with dry-run support
 
 ### Installation Scripts
-- `install/venv_setup.sh` - Virtual environment setup
-- `install/install_gui.sh` - GUI and system dependencies
+- `install/venv_setup.sh` - Virtual environment setup (adds i2c tools)
+- `install/install_gui.sh` - GUI and system dependencies (adds i2c group)
 - `install/display_install.sh` - Display and touch setup
 
 ### Configuration
-- `requirements.txt` - Python package dependencies
-- `gui/rpi_gui.service` - systemd service file
+- `requirements.txt` - Python package dependencies (bme690)
+- `gui/rpi_gui.service` - systemd service file (I2C group + dry-run env)
 - `README.md` - Full project documentation
 
 ## ⚡ Quick Commands
@@ -69,15 +50,16 @@ git clone https://github.com/mrmagicbg/rpi-lab.git ~/rpi-lab
 sudo rsync -a --chown=root:root ~/rpi-lab/ /opt/rpi-lab/
 sudo /opt/rpi-lab/install/venv_setup.sh
 sudo /opt/rpi-lab/install/install_gui.sh
+sudo raspi-config nonint do_i2c 0   # enable I2C
 sudo reboot
 ```
 
 ### Testing
 ```bash
-# Test DHT22 sensor directly
+# Test BME690 sensor directly (dry-run enabled by service)
 cd /opt/rpi-lab
 source .venv/bin/activate
-python3 -m sensors.dht22
+python3 -m sensors.bme690
 ```
 
 ### Service Management
@@ -94,91 +76,45 @@ sudo systemctl restart rpi_gui.service
 
 ## 🐛 Troubleshooting
 
-### Problem: Sensor shows "N/A"
-**Solution**: Check wiring
-- VCC (Pin 1) = 3.3V ✓
-- GND (Pin 6) = 0V ✓
-- DATA (Pin 7 GPIO4) = connected ✓
+### Sensor shows "N/A"
+**Solution**: Check I2C wiring and address
+- 3V3 (Pin 1) ✓
+- GND (Pin 9) ✓
+- SDA (Pin 3 / GPIO2) ✓
+- SCL (Pin 5 / GPIO3) ✓
+- Address: default 0x76; cut ADDR trace for 0x77
 
-See: [docs/DHT22_SETUP.md](docs/DHT22_SETUP.md#troubleshooting)
-
-### Problem: Checksum errors
-**Solution**: Add 4.7kΩ pull-up resistor between VCC and DATA
-
-See: [docs/DHT22_SETUP.md#issue-checksum-errors](docs/DHT22_SETUP.md#issue-checksum-errors-valid-readings-then-failure)
-
-### Problem: Permission denied
-**Solution**: Add user to gpio group
+### Permission denied on /dev/i2c-1
+**Solution**: Add user to i2c group
 ```bash
-sudo usermod -a -G gpio mrmagic
+sudo usermod -a -G i2c mrmagic
 # Log out and back in
 ```
-
-See: [docs/DHT22_SETUP.md#issue-permission-denied](docs/DHT22_SETUP.md#issue-permission-denied-when-reading-gpio)
 
 ## 📋 File Structure
 
 ```
 rpi-lab/
-├── 📖 DHT22_QUICK_REFERENCE.md        ← Start here!
-├── ✅ DEPLOYMENT_CHECKLIST_DHT22.md   ← Verification checklist
-├── 📋 DHT22_INTEGRATION_SUMMARY.md    ← What changed
-├── 📊 UPDATES_COMPLETE.md             ← Complete update summary
 ├── 🔧 sensors/
-│   └── dht22.py                       ← Sensor module (updated)
+│   └── bme690.py                     ← Sensor module
 ├── 🖥️  gui/
-│   ├── rpi_gui.py                     ← GUI (already integrated)
-│   └── rpi_gui.service                ← Service file (updated)
+│   ├── rpi_gui.py                    ← GUI (BME690 integrated)
+│   └── rpi_gui.service               ← Service file (dry-run + i2c)
 ├── 📦 install/
-│   ├── venv_setup.sh                  ← Venv setup (updated)
-│   ├── install_gui.sh                 ← GUI installer (updated)
-│   ├── display_install.sh             ← Display setup
-│   └── install_rf.sh                  ← RF hardware setup
+│   ├── venv_setup.sh                 ← Venv setup (i2c tools)
+│   ├── install_gui.sh                ← GUI installer (i2c group)
+│   ├── display_install.sh            ← Display setup
+│   └── install_rf.sh                 ← RF hardware setup
 ├── 📚 docs/
-│   ├── DHT22_SETUP.md                 ← Comprehensive guide (new)
-│   ├── DHT22_WIRING.md                ← Wiring reference
-│   └── TPMS_MONITORING.md             ← TPMS monitor docs
+│   ├── BME690_SETUP.md               ← Setup guide
+│   ├── BME690_WIRING.md              ← Wiring reference
+│   └── TPMS_MONITORING.md            ← TPMS monitor docs
 ├── 🚀 deploy/
-│   ├── deploy.sh                      ← Full deployment
-│   └── quick_deploy.sh                ← Quick update
-├── 📄 README.md                       ← Project overview (updated)
-└── requirements.txt                   ← Dependencies (updated)
+│   ├── deploy.sh                     ← Full deployment
+│   └── quick_deploy.sh               ← Quick update
+├── 📄 README.md                      ← Project overview
+└── requirements.txt                  ← Dependencies (updated)
 ```
-
-## ✨ What's New
-
-### New Documentation Files
-- ✨ `docs/DHT22_SETUP.md` - Comprehensive hardware and software guide
-- ✨ `DEPLOYMENT_CHECKLIST_DHT22.md` - Step-by-step deployment verification
-- ✨ `DHT22_INTEGRATION_SUMMARY.md` - Integration overview and quick start
-- ✨ `DHT22_QUICK_REFERENCE.md` - Fast reference card
-- ✨ `UPDATES_COMPLETE.md` - Complete update summary
-- ✨ `DOCUMENTATION_INDEX.md` - This file!
-
-### Updated Core Files
-- ✅ `sensors/dht22.py` - Modern DHT22 implementation
-- ✅ `requirements.txt` - Updated dependencies (gpiozero)
-- ✅ `install/venv_setup.sh` - Simplified setup
-- ✅ `install/install_gui.sh` - Added GPIO group
-- ✅ `gui/rpi_gui.service` - Added GPIO permissions
-- ✅ `README.md` - Complete DHT22 documentation
-
-## 🎓 Learning Path
-
-1. **Understand the Changes** (5 min)
-   - Read [DHT22_QUICK_REFERENCE.md](DHT22_QUICK_REFERENCE.md)
-
-2. **Install and Test** (20 min)
-   - Follow [DEPLOYMENT_CHECKLIST_DHT22.md](DEPLOYMENT_CHECKLIST_DHT22.md)
-
-3. **Deep Dive** (30 min)
-   - Read [docs/DHT22_SETUP.md](docs/DHT22_SETUP.md)
-
-4. **Understand Integration** (15 min)
-   - Read [DHT22_INTEGRATION_SUMMARY.md](DHT22_INTEGRATION_SUMMARY.md)
-
-5. **Deploy to Production** (10 min)
-   - Use [deploy/quick_deploy.sh](deploy/quick_deploy.sh)
 
 ## 🔗 Related Documentation
 
@@ -188,16 +124,9 @@ rpi-lab/
 
 ## 💬 Support
 
-### For Common Issues
-→ See [docs/DHT22_SETUP.md](docs/DHT22_SETUP.md#common-issues--solutions)
+→ Pimoroni BME690 Python library: https://github.com/pimoroni/bme690-python
+→ Product page & datasheet: https://shop.pimoroni.com/products/bme690-breakout
 
-### For Deployment Help
-→ Use [DEPLOYMENT_CHECKLIST_DHT22.md](DEPLOYMENT_CHECKLIST_DHT22.md)
-
-### For Understanding Changes
-→ Read [DHT22_INTEGRATION_SUMMARY.md](DHT22_INTEGRATION_SUMMARY.md)
-
-### For Quick Reference
 → See [DHT22_QUICK_REFERENCE.md](DHT22_QUICK_REFERENCE.md)
 
 ## ✅ Status
