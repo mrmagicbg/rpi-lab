@@ -9,10 +9,16 @@ This allows the main MCP server to query BME690 sensor data over HTTP.
 import json
 import logging
 import os
+import sys
 from typing import Dict, Any, Optional
 
 # Import the BME690 sensor module
-from sensors.bme690 import BME690Sensor
+try:
+    from sensors.bme690 import BME690Sensor
+except ImportError:
+    # Handle case when run as script from parent directory
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from sensors.bme690 import BME690Sensor
 
 logger = logging.getLogger(__name__)
 

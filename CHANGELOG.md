@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2026-01-01
+### Fixed
+- **Import handling in bme690_mcp.py**: Made imports more robust to handle different execution contexts
+- **Missing datetime import in gui/rpi_gui.py**: Added datetime import at module level for cleaner code
+- **Logger naming in tpms_logger.py**: Standardized logger name from module_logger to logger for consistency
+- **README.md duplicate section**: Removed duplicate deployment section that was confusing
+
+### Improved
+- **Type hints**: Added proper type hints to TPMSDecoder and TPMSLogger classes
+- **Package structure**: Added proper __init__.py files with docstrings and version info for sensors/ and rf/ packages
+- **Code organization**: Better module-level documentation and cleaner imports throughout
+
+### Documentation
+- **Updated README**: Fixed duplicate deployment script documentation, corrected date to 2026-01-01
+- **Enhanced docstrings**: Improved package-level documentation with usage examples
+
 ## [2.0.0] - 2025-12-28
 ### Added - PASS 1 & 2: Enhanced Installation & Code Quality
 - **Enhanced Installation Scripts**

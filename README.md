@@ -402,27 +402,6 @@ Status: 6 installed, 0 missing
 [Deployment proceeds safely...]
 ```
 
-Comprehensive deployment with safety features:
-
-```bash
-sudo bash /opt/rpi-lab/deploy/deploy.sh [OPTIONS]
-```
-
-**Options:**
-- `--no-backup` - Skip creating backup before deployment
-- `--hard` - Force git reset --hard (discards local changes)
-- `--dry-run` - Show what would be done without making changes
-- `--no-pull` - Deploy current local state without pulling
-
-**What it does:**
-- Creates timestamped backup in `/opt/backups/`
-- Prompts for branch confirmation (safety feature)
-- Pulls latest changes or resets to remote
-- Recreates virtual environment
-- Reloads systemd and restarts service
-
-**Use when:** Major updates, system changes, branch switching
-
 ### Rollback
 
 If deployment fails, restore from backup:
@@ -651,4 +630,4 @@ If you'd like me to add an automated repair script (`install/repair_git.sh`) or 
 
 ---
 
-**Last updated:** 2025-12-28
+**Last updated:** 2026-01-01

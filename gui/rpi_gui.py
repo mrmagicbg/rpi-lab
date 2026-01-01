@@ -24,6 +24,7 @@ import subprocess
 import tkinter as tk
 from tkinter import messagebox
 import logging
+from datetime import datetime
 
 # Import BME690 sensor module
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -365,7 +366,6 @@ class RPILauncherGUI:
     
     def get_current_time(self):
         """Get current time string"""
-        from datetime import datetime
         return datetime.now().strftime("%H:%M:%S")
     
     def reboot_pi(self):

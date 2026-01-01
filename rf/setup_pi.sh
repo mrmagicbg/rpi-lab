@@ -2,12 +2,7 @@
 # Script to setup RF Lab on Raspberry Pi
 # Run this on your Raspberry Pi after cloning the repo
 
-echo "=== RF Lab Setup Script ==="
-echo ""
-
-#!/bin/bash
-# Script to setup RF Lab on Raspberry Pi
-# Run this on your Raspberry Pi after cloning the repo
+set -euo pipefail
 
 echo "=== RF Lab Setup Script ==="
 echo ""

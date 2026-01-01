@@ -98,13 +98,13 @@ class TPMSReading:
 
 
 class TPMSDecoder:
-    """TPMS protocol decoder supporting multiple manufacturers"""
+    """TPMS protocol decoder supporting multiple manufacturers""
     
     # Common TPMS sync words/preambles
     SCHRADER_SYNC = [0x55, 0x55]  # Common preamble
     SIEMENS_SYNC = [0xAA, 0xAA]
     
-    def __init__(self):
+    def __init__(self) -> None:
         self.logger = logging.getLogger(__name__)
     
     def decode_packet(self, raw_bytes: bytes, rssi: int = 0, lqi: int = 0) -> Optional[TPMSReading]:

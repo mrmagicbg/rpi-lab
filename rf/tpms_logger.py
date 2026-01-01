@@ -15,7 +15,7 @@ from pathlib import Path
 
 from tpms_decoder import TPMSReading
 
-module_logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 class TPMSLogger:
@@ -44,13 +44,13 @@ class TPMSLogger:
         self.readings: List[TPMSReading] = []
         self.csv_written = False
         
-        module_logger.info(f"TPMS Logger initialized: {self.log_dir}")
+        logger.info(f"TPMS Logger initialized: {self.log_dir}")
     
-    def add_reading(self, reading: TPMSReading):
+    def add_reading(self, reading: TPMSReading) -> None:
         """Add a TPMS reading to the session log"""
         self.readings.append(reading)
     
-    def add_readings(self, readings: List[TPMSReading]):
+    def add_readings(self, readings: List[TPMSReading]) -> None:
         """Add multiple TPMS readings"""
         self.readings.extend(readings)
     
@@ -65,11 +65,11 @@ class TPMSLogger:
             Path to CSV file
         """
         if not overwrite and self.csv_file.exists():
-            module_logger.warning(f"CSV file exists, skipping: {self.csv_file}")
+            logger.warning(f"CSV file exists, skipping: {self.csv_file}")
             return self.csv_file
         
         if not self.readings:
-            module_logger.warning("No readings to write")
+            logger.warning("No readings to write")
             return self.csv_file
         
         try:
@@ -103,12 +103,12 @@ class TPMSLogger:
                     }
                     writer.writerow(row)
             
-            module_logger.info(f"CSV log written: {self.csv_file} ({len(self.readings)} readings)")
+            logger.info(f"CSV log written: {self.csv_file} ({len(self.readings)} readings)")
             self.csv_written = True
             return self.csv_file
         
         except Exception as e:
-            module_logger.error(f"Failed to write CSV: {e}")
+            logger.error(f"Failed to write CSV: {e}")
             raise
     
     def write_json(self, overwrite: bool = True) -> Path:
@@ -122,11 +122,11 @@ class TPMSLogger:
             Path to JSON file
         """
         if not overwrite and self.json_file.exists():
-            module_logger.warning(f"JSON file exists, skipping: {self.json_file}")
+            logger.warning(f"JSON file exists, skipping: {self.json_file}")
             return self.json_file
         
         if not self.readings:
-            module_logger.warning("No readings to write")
+            logger.warning("No readings to write")
             return self.json_file
         
         try:
@@ -141,11 +141,11 @@ class TPMSLogger:
             with open(self.json_file, 'w') as f:
                 json.dump(data, f, indent=2)
             
-            module_logger.info(f"JSON log written: {self.json_file}")
+            logger.info(f"JSON log written: {self.json_file}")
             return self.json_file
         
         except Exception as e:
-            module_logger.error(f"Failed to write JSON: {e}")
+            logger.error(f"Failed to write JSON: {e}")
             raise
     
     def _generate_summary(self) -> Dict:
@@ -282,7 +282,7 @@ def _analyze_csv(filepath: Path) -> Dict:
         }
     
     except Exception as e:
-        module_logger.error(f"Failed to analyze CSV: {e}")
+        logger.error(f"Failed to analyze CSV: {e}")
         return {'error': str(e)}
 
 
@@ -301,7 +301,7 @@ def _analyze_json(filepath: Path) -> Dict:
         }
     
     except Exception as e:
-        module_logger.error(f"Failed to analyze JSON: {e}")
+        logger.error(f"Failed to analyze JSON: {e}")
         return {'error': str(e)}
 
 
