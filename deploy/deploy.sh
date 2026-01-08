@@ -135,7 +135,7 @@ check_system_prereqs(){
 	log "=== PHASE 1: System Prerequisites ==="
 	
 	local required_packages=("python3" "python3-venv" "python3-pip" "git" "i2c-tools" "build-essential")
-	local missing=0
+	local missing_packages=()
 	local installed=0
 	
 	for pkg in "${required_packages[@]}"; do
@@ -144,16 +144,19 @@ check_system_prereqs(){
 			((installed++))
 		else
 			warn "$pkg missing (will install)"
-			((missing++))
+			missing_packages+=("$pkg")
 		fi
 	done
 	
-	log "Status: $installed installed, $missing missing"
+	log "Status: $installed installed, ${#missing_packages[@]} missing"
 	
-	if [ $missing -gt 0 ]; then
-		log "Installing missing packages..."
-		apt-get update
-		apt-get install -y "${required_packages[@]}"
+	if [ ${#missing_packages[@]} -gt 0 ]; then
+		log "Installing missing packages: ${missing_packages[*]}"
+		log "Running: apt-get update..."
+		DEBIAN_FRONTEND=noninteractive apt-get update -qq
+		log "Running: apt-get install ${missing_packages[*]}..."
+		DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${missing_packages[@]}"
+		ok "Package installation complete"
 	fi
 	
 	ok "System prerequisites satisfied"
@@ -244,6 +247,16 @@ parse_args "$@"
 # ============================================================================
 # RUN PREREQUISITE CHECKS
 # ============================================================================
+
+# Check if running with sudo/root privileges
+if [ "$EUID" -ne 0 ]; then
+	err "This script must be run with sudo privileges"
+	err ""
+	err "Usage: sudo bash deploy.sh"
+	err ""
+	die "Insufficient privileges - exiting"
+fi
+
 if [ $CHECK_PREREQ -eq 1 ]; then
 	log ""
 	log "############################################################################"
@@ -375,7 +388,20 @@ else
 	ok "Virtual environment already exists"
 fi
 
-log "PHASE 10: Installing systemd service..."
+log "PHASE 10: Compiling RF tools..."
+if [ -f "$APP_DIR/install/install_rf.sh" ]; then
+	log "Building CC1101 RF tools (rx_profile_demo)..."
+	if bash "$APP_DIR/install/install_rf.sh"; then
+		ok "RF tools compiled successfully"
+	else
+		warn "RF tools compilation failed (TPMS monitoring will not work)"
+		warn "To fix later, run: sudo bash $APP_DIR/install/install_rf.sh"
+	fi
+else
+	warn "RF installation script not found, skipping RF tools compilation"
+fi
+
+log "PHASE 11: Installing systemd service..."
 cp "$APP_DIR/gui/rpi_gui.service" "/etc/systemd/system/$SERVICE_NAME" || warn "Could not copy service file"
 chmod 644 "/etc/systemd/system/$SERVICE_NAME"
 ok "Service file installed"
@@ -389,7 +415,7 @@ if [ -f "/etc/systemd/system/rpi_tui.service" ]; then
 	ok "Old service removed"
 fi
 
-log "PHASE 11: Reloading systemd and starting GUI service..."
+log "PHASE 12: Reloading systemd and starting GUI service..."
 systemctl daemon-reload
 systemctl enable --now $SERVICE_NAME || warn "Could not enable service"
 systemctl restart $SERVICE_NAME || warn "Could not restart service"

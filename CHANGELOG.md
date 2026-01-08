@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.1] - 2026-01-08
+
+### Fixed - Critical Bug Fixes for Deployment & RF Tools
+- **Deployment Script Improvements** (`deploy/deploy.sh`)
+  - Added explicit sudo/root privilege check at script start
+  - Fixed package installation with DEBIAN_FRONTEND=noninteractive to prevent hanging
+  - Added verbose logging for apt-get operations ("Running: apt-get install...")
+  - Improved prerequisite check error handling and progress messages
+  - Added PHASE 10: RF tools compilation during deployment
+  - RF tools compilation now integrated into deployment process
+  - Added warning messages if RF compilation fails with recovery instructions
+
+- **RF Tools Compilation Fix** (`rf/setup_pi.sh`)
+  - Fixed directory navigation bug after WiringPi installation
+  - Now correctly returns to original directory after WiringPi download
+  - Ensures rx_profile_demo builds successfully in correct location
+  - rx_profile_demo binary now available after deployment
+  - Prevents "RF tool not compiled" error when starting TPMS capture
+
+### Changed
+- Deployment now requires explicit sudo (shows clear error if not run with sudo)
+- RF tools compilation integrated as standard deployment phase (non-blocking warning if fails)
+- Package installation output now visible during deployment for debugging
+
 ## [3.0.0] - 2026-01-08
 
 ### Added - Major Feature Release: Network Info, Speaker Alerts & Enhanced Deployment

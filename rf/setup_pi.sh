@@ -23,6 +23,7 @@ cd CC1101 || { echo "Error: CC1101 directory not found"; exit 1; }
 # Check if WiringPi is installed
 if ! command -v gpio &> /dev/null; then
     echo "WiringPi not found. Installing..."
+    ORIG_DIR=$(pwd)
     cd ~
     if [ "$(uname -m)" = "aarch64" ]; then
         wget -q https://github.com/WiringPi/WiringPi/releases/download/3.6/wiringpi_3.6_arm64.deb
@@ -31,7 +32,7 @@ if ! command -v gpio &> /dev/null; then
         wget -q https://github.com/WiringPi/WiringPi/releases/download/3.6/wiringpi_3.6_armhf.deb
         sudo dpkg -i wiringpi_3.6_armhf.deb
     fi
-    cd ~/rf-lab/CC1101
+    cd "$ORIG_DIR"
 fi
 
 # Build rx_profile_demo
