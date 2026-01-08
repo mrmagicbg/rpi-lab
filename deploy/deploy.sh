@@ -118,6 +118,7 @@ trap 'on_exit' EXIT
 parse_args(){
 	while [ $# -gt 0 ]; do
 		case "$1" in
+			-h|--help) show_help; exit 0 ;;
 			--no-backup) DO_BACKUP=0 ;;
 			--no-prereq) CHECK_PREREQ=0 ;;
 			--dry-run) DRY_RUN=1 ;;
@@ -127,6 +128,82 @@ parse_args(){
 		esac
 		shift
 	done
+}
+
+# Show help message
+show_help(){
+	cat << 'EOF'
+================================================================================
+  RPi Lab Deployment Script
+================================================================================
+
+Safe redeployment from GitHub to /opt/rpi-lab with comprehensive checks.
+
+USAGE:
+  sudo bash deploy.sh [OPTIONS]
+
+OPTIONS:
+  -h, --help        Show this help message
+  --no-backup       Skip creating backup before deployment
+  --no-prereq       Skip prerequisite checking (not recommended)
+  --hard            Force git reset --hard to remote branch (discard local changes)
+  --no-pull         Skip pulling latest changes from remote branch
+  --dry-run         Show what would be done without making changes
+
+ENVIRONMENT VARIABLES:
+  GIT_BRANCH        Branch to deploy (if not set, script prompts interactively)
+  APP_DIR           Target application directory (default: /opt/rpi-lab)
+  BACKUP_DIR        Backup directory (default: /opt/backups)
+
+EXAMPLES:
+  # Full deployment with checks
+  sudo bash deploy.sh
+
+  # Deploy specific branch without prompting
+  GIT_BRANCH=main sudo bash deploy.sh
+
+  # Quick deployment, skip backup
+  sudo bash deploy.sh --no-backup
+
+  # Reset to remote state (discard local changes)
+  sudo bash deploy.sh --hard
+
+FEATURES:
+  ✓ Root privilege check
+  ✓ Multi-phase deployment with detailed status
+  ✓ Automatic backup creation with timestamps
+  ✓ Git branch pulling with interactive confirmation
+  ✓ I2C kernel module checks and device detection
+  ✓ BME690 sensor detection (0x76 primary, 0x77 secondary)
+  ✓ Virtual environment management
+  ✓ Python package installation with requirements.txt
+  ✓ RF tools compilation (CC1101 rx_profile_demo)
+  ✓ Systemd service installation with proper permissions
+  ✓ Automatic rollback on deployment failure
+
+DEPLOYMENT PHASES:
+  PHASE 1:  System Prerequisites (packages, python, build tools)
+  PHASE 2:  I2C Configuration (kernel modules, device files)
+  PHASE 3:  BME690 Sensor Detection
+  PHASE 4:  Python Virtual Environment
+  PHASE 5:  Backup Creation
+  PHASE 6:  Git Branch Pulling
+  PHASE 7:  Repository Sync
+  PHASE 8:  Hard Reset (if --hard flag used)
+  PHASE 9:  Virtual Environment Setup
+  PHASE 10: RF Tools Compilation
+  PHASE 11: Systemd Service Installation
+  PHASE 12: Service Reload & Start
+
+TROUBLESHOOTING:
+  Must run with sudo for system-level operations
+  Branch confirmation required: type exact branch name to proceed
+  Logs available via: journalctl -u rpi_gui.service -f
+  
+  If deployment fails, automatic rollback will restore from backup.
+  Manual recovery: tar -xzf /opt/backups/<backup-file>.tgz -C /opt
+
+EOF
 }
 
 # Phase 1: Check system prerequisites
