@@ -1,0 +1,32 @@
+[Unit]
+Description=BME690 MQTT Publisher for Home Assistant
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mrmagic
+WorkingDirectory=/opt/rpi-lab
+ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/sensors/mqtt_publisher.py
+Restart=on-failure
+RestartSec=10
+
+# MQTT Configuration
+Environment="MQTT_BROKER=your-ha-external-url.com"
+Environment="MQTT_PORT=1883"
+Environment="MQTT_USER=mqtt_user"
+Environment="MQTT_PASSWORD=mqtt_password"
+Environment="MQTT_TOPIC_PREFIX=homeassistant"
+Environment="DEVICE_NAME=rpi_lab"
+Environment="UPDATE_INTERVAL=60"
+
+# I2C access
+SupplementaryGroups=i2c
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mqtt_publisher
+
+[Install]
+WantedBy=multi-user.target
