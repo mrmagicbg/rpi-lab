@@ -236,10 +236,35 @@ Monitor sensor data remotely via SSH using the rich-based TUI interface.
 
 ### Usage
 
+#### Quick Start with Aliases (Recommended)
+
+Convenient aliases are available for quick access:
+
 ```bash
 # SSH into your Pi
 ssh user@raspberry-pi-ip
 
+# Full TUI (both sensor and RF panels)
+rpi-tui
+
+# Sensor data only
+rpi-tui-sensor
+
+# RF/TPMS data only
+rpi-tui-rf
+
+# Custom refresh interval
+rpi-tui --interval 1.0
+rpi-tui-sensor --interval 0.5
+
+# Press Ctrl+C to exit
+```
+
+#### Full Commands
+
+If aliases aren't configured:
+
+```bash
 # Monitor sensor data only (default)
 /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_tui.py
 
@@ -251,8 +276,6 @@ ssh user@raspberry-pi-ip
 
 # Show both sensor and RF data side-by-side
 /opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_tui.py --both
-
-# Press Ctrl+C to exit
 ```
 
 ### Requirements

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.7] - 2026-01-08
+
+### Added - TUI Aliases
+- Convenient bash aliases for quick TUI access via SSH:
+  - `rpi-tui` — Full interface (both sensor and RF panels)
+  - `rpi-tui-sensor` — Sensor data only
+  - `rpi-tui-rf` — RF/TPMS data only
+- Aliases added to `~/.bash_aliases` on Pi for persistence across sessions
+- Updated README with alias usage examples
+
 ## [3.0.6] - 2026-01-08
 
 ### Changed - Gas Alert Threshold
