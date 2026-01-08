@@ -8,7 +8,7 @@ Enhanced RPI GUI launcher with:
 - Large touch-friendly buttons for 800x480 Waveshare 4.3" DSI display
 
 Alert conditions:
-- Gas: Beep every 15 seconds when volatile gases detected (low resistance)
+- Gas: Beep every 15 seconds when Gas Detected (< 5kΩ) - Red level only
 - Temperature: Beep hourly when < 0°C or > 30°C
 - Humidity: Beep hourly when < 25% or > 80%
 - System events: Beep on startup, shutdown, reboot
@@ -141,7 +141,7 @@ class RPILauncherGUI:
         self.temp_max = 30.0
         self.humidity_min = 25.0
         self.humidity_max = 80.0
-        self.gas_threshold = 50000  # Ohms - low resistance indicates volatile gases
+        self.gas_threshold = 5000  # Ohms - beep only when "Gas Detected" (< 5kΩ)
         
         # Get screen dimensions (800x480 for Waveshare 4.3")
         screen_width = self.root.winfo_screenwidth()

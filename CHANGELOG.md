@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.6] - 2026-01-08
+
+### Changed - Gas Alert Threshold
+- Gas alert beeping now only triggers for "Gas Detected" level (< 5kΩ)
+- Previous threshold of 50kΩ caused false alerts during normal warm-up
+- Beeping remains at 15-second intervals when true gas detection occurs
+- Other gas status levels (Warm-Up through Normal) display without audio alerts
+
 ## [3.0.5] - 2026-01-08
 
 ### Added - TUI Interface & Enhanced Gas Display
