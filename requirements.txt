@@ -9,3 +9,6 @@ evdev==1.9.2
 bme690==0.3.2
 # Optional: smbus2 for I2C; system package python3-smbus also used
 smbus2==0.5.2
+
+# GPIO for speaker PWM control
+RPi.GPIO==0.7.1

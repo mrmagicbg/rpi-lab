@@ -3,15 +3,55 @@
 Overview
 --------
 
-RPI Lab collects utilities and helpers for Raspberry Pi devices with integrated hardware support:
+RPI Lab is a comprehensive Raspberry Pi monitoring and control system with integrated hardware support for environmental sensing, RF monitoring, and audio alerts:
 
-- `rf/` — **TPMS tire pressure monitoring** with CC1101 RF transceiver (433 MHz)
-- `display/` — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
-- `gui/` — **Touch-friendly GUI** with TPMS monitor, sensor display, system controls
-- `sensors/` — **BME690 air quality sensor** (temperature, humidity, pressure, gas)
-- `deploy/` — GitHub-based deployment scripts for easy updates
+- **`sensors/`** — **BME690 environmental sensor** (temperature, humidity, pressure, gas) with **PWM speaker alerts**
+- **`gui/`** — **Touch-friendly GUI** with network info, sensor display, alerts, and system controls
+- **`rf/`** — **TPMS tire pressure monitoring** with CC1101 RF transceiver (433 MHz)
+- **`display/`** — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
+- **`deploy/`** — GitHub-based deployment with branch selection and automatic rollback
 
-This README provides Quickstart, detailed install steps, sensor configuration, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
+### Key Features
+
+✨ **Enhanced GUI** (v3.0.0)
+- Real-time network information (IP/mask, gateway, DNS servers)
+- BME690 sensor monitoring with compact 2x2 grid display
+- Intelligent audio alerts for environmental thresholds
+- Test speaker button for audio verification
+- Full-screen touch-optimized interface (800x480)
+
+🔊 **Smart Audio Alerts**
+- **Gas detection**: Beep every 15 seconds when volatile gases detected
+- **Temperature**: Hourly alerts when < 0°C or > 30°C
+- **Humidity**: Hourly alerts when < 25% or > 80%
+- **System events**: Startup, shutdown, and reboot notifications
+- Hardware PWM for clean, consistent audio (GPIO 12)
+
+🌡️ **BME690 Environmental Sensor**
+- Temperature (°C), humidity (%RH), pressure (hPa), gas resistance (Ω)
+- I2C interface (0x76 primary, 0x77 secondary)
+- Gas heater stabilization with status indicators
+- Exponential backoff retry for I2C reliability
+
+🚗 **TPMS RF Monitor**
+- Real-time tire pressure monitoring via CC1101 transceiver
+- Multi-sensor support with live data visualization
+- Standalone GUI with packet capture controls
+
+📡 **Network Monitoring**
+- IP address with CIDR notation (e.g., 192.168.1.100/24)
+- Default gateway and DNS server display
+- Auto-detection of eth0/wlan0 interfaces
+- Updates every 30 seconds
+
+🔧 **Deployment & Maintenance**
+- Interactive branch selection with confirmation
+- Automatic backup before deployment
+- Rollback on failure
+- Comprehensive prerequisite checking
+- Aligned with IGW deployment patterns
+
+This README provides Quickstart, detailed install steps, hardware wiring, sensor configuration, troubleshooting and maintenance guidance for deploying the project on a Raspberry Pi.
 
 Table of Contents
 -----------------
@@ -97,20 +137,41 @@ sudo /opt/rpi-lab/install/install_gui.sh         # GUI mode with large touch but
 
 ```bash
 sudo reboot
+```
 
-### Quick Updates via GitHub Deployment
+### Quick Updates via GitHub Deployment (v3.0.0)
 
-After initial setup, use the quick deployment script for fast updates:
+The deployment script now follows IGW patterns with interactive branch selection:
 
 ```bash
-# On your development machine: commit and push changes
-cd ~/Code/GitHub/mrmagicbg/rpi-lab
-git add .
-git commit -m "Update sensor readings"
-git push origin main
+# On the Pi: run deployment script
+sudo bash /opt/rpi-lab/deploy/deploy.sh
 
-# On the Pi: pull and restart service
-ssh 10.10.10.105 "sudo bash /opt/rpi-lab/deploy/quick_deploy.sh"
+# You'll be prompted for:
+# 1. Branch name to deploy (e.g., main, dev, feature/xyz)
+# 2. Confirmation (type exact branch name to proceed)
+```
+
+**Environment Variable Option** (skip prompts):
+```bash
+# Deploy specific branch without prompting
+GIT_BRANCH=main sudo bash /opt/rpi-lab/deploy/deploy.sh
+```
+
+**Deployment Features**:
+- ✅ Interactive branch selection with confirmation
+- ✅ Automatic backup before deployment
+- ✅ Rollback on failure
+- ✅ Comprehensive prerequisite checking (I2C, sensor, packages)
+- ✅ Service status verification
+- ✅ Clear phase-based progress output
+
+**Options**:
+```bash
+sudo bash /opt/rpi-lab/deploy/deploy.sh --no-backup   # Skip backup
+sudo bash /opt/rpi-lab/deploy/deploy.sh --hard        # Force reset local changes
+sudo bash /opt/rpi-lab/deploy/deploy.sh --no-pull     # Deploy current local state
+sudo bash /opt/rpi-lab/deploy/deploy.sh --dry-run     # Show what would be done
 ```
 
 GUI Features
@@ -118,24 +179,28 @@ GUI Features
 
 The GUI application provides an intuitive touch interface optimized for the Waveshare 4.3" 800×480 display:
 
-### Layout
+### Layout (v3.0.0 Enhanced)
 
-**Integrated Sensor Display** (top section):
-- Real-time temperature (°C), humidity (%), pressure (hPa) and gas resistance (Ω)
-- Auto-updates every 5 seconds from BME690 sensor
-- Status line shows last update time, I2C status, and gas heater stability
+**Integrated Info Panel** (top section):
+- **Network Info** (left): IP/mask (CIDR), gateway, DNS servers
+- **Sensor Data** (right): Temperature, humidity, pressure, gas resistance (2x2 grid)
+- Auto-updates every 5-30 seconds
+- Status line shows update time, I2C status, gas heater stability
 
-**4 Uniform Touch Buttons** (bottom section):
+**5 Uniform Touch Buttons** (bottom section):
 - **📡 TPMS Monitor** - Launch RF tire pressure monitoring GUI (Blue)
+- **🔊 Test Speaker** - Play test beep pattern for audio verification (Orange)
 - **🔄 Reboot System** - System reboot with confirmation dialog (Red)
 - **💻 Open Terminal** - Launch xterm terminal window (Green)
 - **❌ Exit Application** - Close GUI with confirmation (Gray)
 
 ### Design Features
 
-- **Uniform Touch Targets**: All 4 buttons identical size for consistent touch experience
-- **Persistent Sensor Display**: Temperature and humidity always visible (no popup needed)
-- **Auto-Refresh**: Sensor readings update automatically every 5 seconds
+- **Unified Info Display**: Network and sensor data side-by-side for quick reference
+- **Smart Audio Alerts**: Beeps for gas, temperature, humidity thresholds + system events
+- **Uniform Touch Targets**: All buttons identical size for consistent touch experience
+- **Persistent Data**: All critical info always visible (no popups needed)
+- **Auto-Refresh**: Network (30s) and sensor (5s) update intervals
 - **Color-Coded Interface**: Different colors help identify button functions quickly
 - **Confirmation Dialogs**: Destructive actions (reboot, exit) require confirmation
 - **Fullscreen Mode**: F11 to toggle, Escape to exit (keyboard shortcuts)
@@ -205,58 +270,135 @@ sudo bash /opt/rpi-lab/install/install_rf.sh
 
 **Full Documentation**: See [`docs/TPMS_MONITORING.md`](docs/TPMS_MONITORING.md)
 
-BME690 Sensor Setup
--------------------
+BME690 Sensor Setup & Audio Alerts
+-----------------------------------
 
-The RPI Lab now uses the Pimoroni **BME690** breakout for environmental sensing (temperature, humidity, pressure, gas).
+The RPI Lab uses the Pimoroni **BME690** breakout for environmental sensing with intelligent audio alerts.
 
 ### Hardware Wiring
 
-See: [`docs/BME690_WIRING.md`](docs/BME690_WIRING.md)
-
-Quick reference:
+**BME690 Sensor Connections**:
 
 | BME690 | Raspberry Pi Pin | Description |
 |--------|-------------------|-------------|
-| 3V3    | Pin 1             | Power |
+| VCC    | Pin 1 (3.3V)      | Power |
 | SDA    | Pin 3 (GPIO2)     | I2C Data |
 | SCL    | Pin 5 (GPIO3)     | I2C Clock |
-| GND    | Pin 9             | Ground |
+| GND    | Pin 6 (GND)       | Ground |
+
+**PWM Speaker Connections**:
+
+| Speaker Wire | Raspberry Pi Pin | Description |
+|--------------|------------------|-------------|
+| Red (+)      | Pin 32 (GPIO12)  | Hardware PWM output |
+| Black (-)    | Pin 6 or 9 (GND) | Ground |
+
+**Complete Hardware Guide**: [`docs/HARDWARE_WIRING.md`](docs/HARDWARE_WIRING.md)
+
+### Enable I2C and Verify Sensor
+
+```bash
+sudo raspi-config
+# → Interface Options → I2C → Enable → Reboot
+
+# Verify sensor detection
+i2cdetect -y 1
+# Should show '76' at address 0x76
+```
 
 ### Software Installation
 
-Handled by `install/venv_setup.sh` and `requirements.txt` (includes `bme690`). Ensure I2C is enabled:
+Handled by `install/venv_setup.sh` and `requirements.txt` (includes `bme690` and `RPi.GPIO`):
 
 ```bash
-sudo raspi-config nonint do_i2c 0
-sudo apt-get install -y i2c-tools python3-smbus
+sudo /opt/rpi-lab/install/venv_setup.sh
 ```
 
-### Testing the Sensor
+### Testing Sensor & Speaker
 
-Dry-run (no hardware):
+**Dry-run (no hardware)**:
 
 ```bash
 cd /opt/rpi-lab
 source .venv/bin/activate
 export BME690_DRY_RUN=1
-python3 -m sensors.bme690
+export SPEAKER_DRY_RUN=1
+python3 sensors/bme690.py
+python3 sensors/speaker.py
 ```
 
-Hardware test:
+**Hardware test**:
 
 ```bash
 cd /opt/rpi-lab
 source .venv/bin/activate
-unset BME690_DRY_RUN
-python3 -m sensors.bme690
+python3 sensors/bme690.py     # Test BME690 sensor
+python3 sensors/speaker.py    # Test speaker patterns
+```
+
+### Audio Alert System (New in v3.0.0)
+
+The GUI provides intelligent audio alerts using hardware PWM on GPIO 12:
+
+**Alert Conditions**:
+- **🫁 Volatile Gas Detection**: Double beep every 15 seconds when gas resistance < 50kΩ
+  - Indicates VOCs, smoke, cooking fumes, etc.
+- **🌡️ Temperature Alerts**: Triple beep hourly when < 0°C or > 30°C
+- **💧 Humidity Alerts**: Double beep hourly when < 25% or > 80%
+- **🔊 System Events**:
+  - Startup: Long beep when GUI launches
+  - Shutdown: Long beep when GUI exits
+  - Reboot: Triple beep before system reboot
+- **🎵 Test**: Press "🔊 Test Speaker" button in GUI for audio verification
+
+**Alert Features**:
+- **Throttling**: Gas alerts every 15 seconds, temp/humidity hourly
+- **Non-blocking**: Background thread processing
+- **Hardware PWM**: Clean 2000 Hz square wave (no jitter)
+- **Configurable**: Thresholds in `gui/rpi_gui.py`
+
+**To disable alerts**:
+```bash
+# Set environment variable before starting GUI
+export SPEAKER_DRY_RUN=1
+```
+
+### Network Information Display (New in v3.0.0)
+
+The GUI shows real-time network status:
+- **IP Address**: With CIDR notation (e.g., 192.168.1.100/24)
+- **Gateway**: Default gateway IP
+- **DNS Servers**: Up to 2 nameservers
+- **Auto-detection**: eth0 first, falls back to wlan0
+- **Refresh**: Every 30 seconds
+
+### Sensor Features
+
+**Gas Heater Stabilization**:
+- Initial warm-up: ~5 minutes for first accurate gas reading
+- "Gas heater stable" indicator when ready
+- Air quality estimation: Good > 150kΩ, Moderate 50-150kΩ, Poor 10-50kΩ, Very Poor < 10kΩ
+
+**Error Recovery**:
+- Exponential backoff on I2C errors (5s → 15s → 60s)
+- Automatic recovery when sensor reconnects
+- Error counter with retry countdown
+
+**Data Logging**:
+```bash
+# View real-time logs
+journalctl -u rpi_gui.service -f
+
+# Check alert history
+journalctl -u rpi_gui.service | grep -i "alert"
 ```
 
 ### GUI Integration
 
-- The GUI displays temperature, humidity, pressure and gas resistance.
-- Status line shows last update time and gas heater stability.
-- Fullscreen auto-start on boot via `gui/rpi_gui.service`.
+- Displays temperature, humidity, pressure, gas resistance
+- Network info panel (IP, gateway, DNS)
+- Status line with update time and gas heater stability
+- Fullscreen auto-start on boot via `rpi_gui.service`
 
 GitHub Deployment Workflow
 ---------------------------

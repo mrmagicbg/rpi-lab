@@ -1,0 +1,436 @@
+#!/usr/bin/env python3
+"""
+RPI GUI launcher for RF tools, sensor monitoring, and system actions.
+
+Features:
+- Large uniform touch-friendly buttons (800x480 Waveshare 4.3" DSI display)
+- Live DHT22 temperature and humidity sensor display
+- Runs RF setup script (from `rf/`)
+- Reboots the Pi
+- Drops to an interactive shell in a terminal
+- Clean exit
+- Auto-detects ft5x06 touch device via evdev
+
+Requirements:
+- tkinter (python3-tk)
+- evdev (installed via requirements.txt into venv)
+- Adafruit_DHT (for DHT22 sensor)
+- X11 or Wayland display server
+"""
+
+import os
+import sys
+import subprocess
+import tkinter as tk
+from tkinter import messagebox
+import logging
+from datetime import datetime
+
+# Import BME690 sensor module
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from sensors.bme690 import BME690Sensor
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger('rpi_gui')
+
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+RF_SCRIPT_PATH = os.path.join(BASE_DIR, 'rf', 'setup_pi.sh')
+
+# Initialize BME690 sensor (I2C 0x76 by default)
+BME_SENSOR = BME690Sensor()
+
+
+class RPILauncherGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("RPI Lab - Control Panel")
+        
+        # Error tracking for sensor updates with exponential backoff
+        self.sensor_error_count = 0
+        self.update_interval = 5000  # Initial update interval in milliseconds
+        
+        # Get screen dimensions (800x480 for Waveshare 4.3")
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        
+        logger.info(f"Screen resolution: {screen_width}x{screen_height}")
+        
+        # Fullscreen on touch display
+        self.root.geometry(f"{screen_width}x{screen_height}")
+        self.root.attributes('-fullscreen', True)
+        
+        # Dark theme with large, touch-friendly elements
+        self.root.configure(bg='#1e1e1e')
+        
+        # Main container
+        main_frame = tk.Frame(self.root, bg='#1e1e1e')
+        main_frame.pack(fill='both', expand=True, padx=20, pady=10)
+        
+        # Title label
+        title = tk.Label(
+            main_frame,
+            text="RPI Lab Control Panel",
+            font=('Arial', 24, 'bold'),
+            fg='#00ff88',
+            bg='#1e1e1e',
+            pady=10
+        )
+        title.pack()
+        
+        # Sensor display area
+        self.sensor_frame = tk.Frame(main_frame, bg='#2d2d2d', relief='raised', bd=3)
+        self.sensor_frame.pack(fill='x', padx=10, pady=10)
+        
+        sensor_title = tk.Label(
+            self.sensor_frame,
+            text="BME690 Sensor (I2C)",
+            font=('Arial', 14, 'bold'),
+            fg='#00ff88',
+            bg='#2d2d2d',
+            pady=5
+        )
+        sensor_title.pack()
+        
+        # Sensor readings container
+        sensor_data_frame = tk.Frame(self.sensor_frame, bg='#2d2d2d')
+        sensor_data_frame.pack(pady=5)
+        
+        # Temperature display
+        temp_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        temp_container.pack(side='left', padx=20)
+        
+        tk.Label(
+            temp_container,
+            text="🌡️ Temp:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+        
+        self.temp_label = tk.Label(
+            temp_container,
+            text="--°C",
+            font=('Arial', 20, 'bold'),
+            fg='#ff6b6b',
+            bg='#2d2d2d'
+        )
+        self.temp_label.pack()
+        
+        # Humidity display
+        humid_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        humid_container.pack(side='left', padx=20)
+        
+        tk.Label(
+            humid_container,
+            text="💧 Humidity:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+        
+        self.humid_label = tk.Label(
+            humid_container,
+            text="--%",
+            font=('Arial', 20, 'bold'),
+            fg='#4ecdc4',
+            bg='#2d2d2d'
+        )
+        self.humid_label.pack()
+
+        # Pressure display
+        press_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        press_container.pack(side='left', padx=20)
+
+        tk.Label(
+            press_container,
+            text="🧭 Pressure:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+
+        self.press_label = tk.Label(
+            press_container,
+            text="-- hPa",
+            font=('Arial', 20, 'bold'),
+            fg='#9aa0ff',
+            bg='#2d2d2d'
+        )
+        self.press_label.pack()
+
+        # Gas resistance display
+        gas_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
+        gas_container.pack(side='left', padx=20)
+
+        tk.Label(
+            gas_container,
+            text="🫁 Gas:",
+            font=('Arial', 12, 'bold'),
+            fg='#ffffff',
+            bg='#2d2d2d'
+        ).pack()
+
+        self.gas_label = tk.Label(
+            gas_container,
+            text="-- Ω",
+            font=('Arial', 20, 'bold'),
+            fg='#ffae00',
+            bg='#2d2d2d'
+        )
+        self.gas_label.pack()
+        
+        # Status label
+        self.sensor_status = tk.Label(
+            self.sensor_frame,
+            text="Initializing sensor...",
+            font=('Arial', 9),
+            fg='#888888',
+            bg='#2d2d2d',
+            pady=5
+        )
+        self.sensor_status.pack()
+        
+        # Button container frame
+        button_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        button_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        # UNIFORM touch buttons - all same size
+        button_config = {
+            'font': ('Arial', 18, 'bold'),
+            'width': 20,
+            'height': 1,
+            'relief': 'raised',
+            'bd': 4,
+            'fg': 'white'
+        }
+        
+        # Menu buttons - all uniform size
+        btn_rf = tk.Button(
+            button_frame,
+            text="📡 TPMS Monitor",
+            command=self.run_rf_script,
+            bg='#2d89ef',
+            activebackground='#1e5fa8',
+            **button_config
+        )
+        btn_rf.pack(pady=5, fill='x')
+        
+        btn_reboot = tk.Button(
+            button_frame,
+            text="🔄 Reboot System",
+            command=self.reboot_pi,
+            bg='#e81123',
+            activebackground='#a50011',
+            **button_config
+        )
+        btn_reboot.pack(pady=5, fill='x')
+        
+        btn_shell = tk.Button(
+            button_frame,
+            text="💻 Open Terminal",
+            command=self.open_shell,
+            bg='#00a300',
+            activebackground='#007000',
+            **button_config
+        )
+        btn_shell.pack(pady=5, fill='x')
+        
+        btn_exit = tk.Button(
+            button_frame,
+            text="❌ Exit to Desktop",
+            command=self.exit_app,
+            bg='#555555',
+            activebackground='#333333',
+            **button_config
+        )
+        btn_exit.pack(pady=5, fill='x')
+        
+        # Footer with instructions
+        footer = tk.Label(
+            self.root,
+            text="Touch buttons to perform actions • F11: fullscreen • ESC: exit",
+            font=('Arial', 9),
+            fg='#666666',
+            bg='#1e1e1e',
+            pady=5
+        )
+        footer.pack(side='bottom')
+        
+        # Keyboard shortcuts
+        self.root.bind('<F11>', self.toggle_fullscreen)
+        self.root.bind('<Escape>', lambda e: self.exit_app())
+        
+        # Start sensor update loop
+        self.update_sensor_readings()
+        
+        logger.info("GUI initialized successfully")
+    
+    def run_rf_script(self):
+        """Launch TPMS RF Monitor GUI"""
+        logger.info("RF Monitor button pressed")
+        
+        try:
+            # Launch TPMS monitor in new window
+            rf_dir = os.path.join(BASE_DIR, 'rf')
+            tpms_gui_path = os.path.join(rf_dir, 'tpms_monitor_gui.py')
+            
+            if not os.path.isfile(tpms_gui_path):
+                logger.error(f"TPMS monitor not found: {tpms_gui_path}")
+                messagebox.showerror(
+                    "TPMS Monitor Not Found",
+                    f"TPMS monitor GUI not found at:\n{tpms_gui_path}"
+                )
+                return
+            
+            # Launch TPMS monitor as standalone window
+            logger.info(f"Launching TPMS monitor: {tpms_gui_path}")
+            venv_python = os.path.join(BASE_DIR, '.venv', 'bin', 'python')
+            
+            if os.path.exists(venv_python):
+                subprocess.Popen([venv_python, tpms_gui_path])
+            else:
+                subprocess.Popen(['python3', tpms_gui_path])
+            
+        except Exception as e:
+            logger.error(f"Failed to launch TPMS monitor: {e}")
+            messagebox.showerror("Error", f"Failed to launch TPMS monitor:\n{e}")
+    
+    def update_sensor_readings(self):
+        """Update sensor readings on main screen with error recovery and exponential backoff."""
+        try:
+            data = BME_SENSOR.read_formatted()
+            self.temp_label.config(text=data["temperature_str"]) 
+            self.humid_label.config(text=data["humidity_str"]) 
+            self.press_label.config(text=data["pressure_str"]) 
+            self.gas_label.config(text=data["gas_res_str"]) 
+
+            if data["temperature_str"] == "N/A":
+                # Sensor not responding - increment error counter
+                self.sensor_error_count += 1
+                
+                # Adjust update interval based on error frequency
+                if self.sensor_error_count < 3:
+                    self.update_interval = 5000  # 5 sec - normal
+                elif self.sensor_error_count < 6:
+                    self.update_interval = 15000  # 15 sec - slowing down
+                else:
+                    self.update_interval = 60000  # 60 sec - very slow
+                
+                self.sensor_status.config(
+                    text=f"⚠️ Sensor not connected (error #{self.sensor_error_count}, retry in {self.update_interval//1000}s)",
+                    fg='#ffaa00'
+                )
+            else:
+                # Success - reset error counter and interval
+                if self.sensor_error_count > 0:
+                    logger.info(f"Sensor recovered after {self.sensor_error_count} errors")
+                
+                self.sensor_error_count = 0
+                self.update_interval = 5000  # Reset to normal interval
+                
+                status_text = "✓ Last updated: " + self.get_current_time()
+                if data.get("heat_stable"):
+                    status_text += " • Gas heater stable"
+                self.sensor_status.config(
+                    text=status_text,
+                    fg='#00aa00'
+                )
+                
+        except Exception as e:
+            logger.error(f"Sensor update error: {e}", exc_info=True)
+            self.sensor_error_count += 1
+            
+            # Exponential backoff based on consecutive errors
+            if self.sensor_error_count < 3:
+                self.update_interval = 5000  # 5 sec
+            elif self.sensor_error_count < 6:
+                self.update_interval = 15000  # 15 sec
+            else:
+                self.update_interval = 60000  # 60 sec
+            
+            # Show error state with countdown
+            self.temp_label.config(text="Error")
+            self.humid_label.config(text="Error")
+            self.press_label.config(text="Error")
+            self.gas_label.config(text="Error")
+            self.sensor_status.config(
+                text=f"⚠️ Sensor error #{self.sensor_error_count} ({e.__class__.__name__}). Retry in {self.update_interval//1000}s",
+                fg='#ff6666'
+            )
+        
+        # Schedule next update with current interval (may have changed due to errors)
+        self.root.after(self.update_interval, self.update_sensor_readings)
+    
+    def get_current_time(self):
+        """Get current time string"""
+        return datetime.now().strftime("%H:%M:%S")
+    
+    def reboot_pi(self):
+        """Reboot the Raspberry Pi after confirmation"""
+        logger.info("Reboot button pressed")
+        if messagebox.askyesno("Confirm Reboot", "Reboot Raspberry Pi now?"):
+            logger.info("Reboot confirmed")
+            try:
+                subprocess.Popen(['sudo', 'reboot'])
+            except Exception as e:
+                logger.error(f"Failed to reboot: {e}")
+                messagebox.showerror("Error", f"Failed to reboot:\n{e}")
+    
+    def open_shell(self):
+        """Open a terminal window"""
+        logger.info("Shell button pressed")
+        try:
+            # Try different terminal emulators
+            terminals = ['x-terminal-emulator', 'xterm', 'lxterminal', 'gnome-terminal']
+            for term in terminals:
+                if subprocess.call(['which', term], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                    subprocess.Popen([term])
+                    break
+            else:
+                messagebox.showwarning("No Terminal", "No terminal emulator found.\nInstall xterm: sudo apt install xterm")
+        except Exception as e:
+            logger.error(f"Failed to open shell: {e}")
+            messagebox.showerror("Error", f"Failed to open shell:\n{e}")
+    
+    def exit_app(self):
+        """Exit the application"""
+        logger.info("Exit button pressed")
+        if messagebox.askyesno("Confirm Exit", "Exit RPI Lab GUI?"):
+            logger.info("Exit confirmed")
+            try:
+                self.root.destroy()
+            finally:
+                sys.exit(0)
+    
+    def toggle_fullscreen(self, event=None):
+        """Toggle fullscreen mode"""
+        current = self.root.attributes('-fullscreen')
+        self.root.attributes('-fullscreen', not current)
+        logger.info(f"Fullscreen: {not current}")
+
+
+def main():
+    """Main entry point"""
+    logger.info("Starting RPI Lab GUI...")
+    logger.info(f"Python: {sys.version}")
+    logger.info(f"Base directory: {BASE_DIR}")
+    
+    root = tk.Tk()
+    app = RPILauncherGUI(root)
+    
+    try:
+        root.mainloop()
+    except KeyboardInterrupt:
+        logger.info("Interrupted by user")
+    except Exception as e:
+        logger.error(f"GUI error: {e}", exc_info=True)
+        raise
+    finally:
+        logger.info("GUI shutting down")
+
+
+if __name__ == '__main__':
+    main()

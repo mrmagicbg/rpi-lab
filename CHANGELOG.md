@@ -2,6 +2,98 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-01-08
+
+### Added - Major Feature Release: Network Info, Speaker Alerts & Enhanced Deployment
+- **PWM Speaker Module** (`sensors/speaker.py`)
+  - Hardware PWM support on GPIO pin 12 (physical pin 32)
+  - Audio alert patterns: single, double, triple, long, and test beeps
+  - Dedicated alert methods for gas, temperature, humidity, and system events
+  - Dry-run mode for development without hardware (SPEAKER_DRY_RUN=1)
+  - Thread-safe beep operations with non-blocking pattern playback
+  - Configurable frequency (default 2000 Hz) and duty cycle (default 50%)
+
+- **Intelligent Alert System**
+  - **Gas alerts**: Beep every 15 seconds when volatile gases detected (resistance < 50kΩ)
+  - **Temperature alerts**: Beep hourly when < 0°C or > 30°C
+  - **Humidity alerts**: Beep hourly when < 25% or > 80%
+  - **System event beeps**: Startup, shutdown, and reboot notifications
+  - Configurable alert thresholds and intervals
+  - Alert state tracking prevents duplicate notifications
+
+- **Network Information Display**
+  - Real-time IP address with CIDR notation (e.g., 192.168.1.100/24)
+  - Default gateway display
+  - DNS server information (up to 2 servers shown)
+  - Auto-detection of eth0/wlan0 interfaces
+  - Refreshes every 30 seconds
+  - Positioned left of sensor data for easy reference
+
+- **Enhanced GUI Layout**
+  - Split info panel: Network info (left) + Sensor data (right)
+  - Compact sensor display in 2x2 grid for better space utilization
+  - New "🔊 Test Speaker" button for audio verification
+  - Improved button sizing and spacing for 800x480 display
+  - Better visual hierarchy with section headers
+
+- **Deployment Script Enhancements**
+  - Aligned with IGW deployment pattern for consistency
+  - Interactive branch selection (prompts for GIT_BRANCH)
+  - Branch confirmation required before deployment (type branch name to confirm)
+  - Clearer deployment summary with all options displayed
+  - Environment variable support: GIT_BRANCH (replaces DEPLOY_BRANCH)
+  - Better error messages and user guidance
+
+- **Documentation**
+  - New comprehensive hardware wiring guide (`docs/HARDWARE_WIRING.md`)
+  - Complete BME690 sensor wiring with I2C address configuration
+  - PWM speaker wiring with GPIO pin details
+  - Alert pattern reference table
+  - Troubleshooting sections for sensor and speaker issues
+  - Safety notes and power considerations
+  - Quick reference commands for testing
+
+### Changed
+- **GUI improvements**:
+  - Sensor display now uses compact 2x2 grid layout instead of horizontal row
+  - Network info integrated into main panel alongside sensor data
+  - Button font size adjusted to 16pt for better readability
+  - Status text font sizes reduced to fit more information
+- **Deployment script**:
+  - Variable naming: `DEPLOY_BRANCH` → `GIT_BRANCH` (matches IGW pattern)
+  - Branch prompting: Now requires explicit branch name (no default)
+  - Confirmation: Must type exact branch name to proceed
+- **Requirements**: Added RPi.GPIO==0.7.1 for speaker PWM control
+
+### Removed
+- **quick_deploy.sh**: Removed in favor of enhanced main deploy.sh script
+- Old GUI backup saved as `rpi_gui_old.py` (can be removed after testing)
+
+### Fixed
+- Network interface detection now falls back to wlan0 if eth0 unavailable
+- Sensor error recovery with exponential backoff prevents log spam
+- Alert timing ensures hourly checks don't trigger on every sensor read
+
+### Technical Details
+- **Speaker Implementation**: Uses RPi.GPIO hardware PWM (channel 0) for clean audio output
+- **Network Detection**: Uses ioctl calls (SIOCGIFADDR, SIOCGIFNETMASK) for direct interface queries
+- **Alert Management**: Thread-safe operations with datetime-based throttling
+- **Gateway Detection**: Parses /proc/net/route for default gateway
+- **DNS Discovery**: Reads /etc/resolv.conf for nameserver entries
+
+### Recommendations for Future Implementation
+Consider adding:
+1. **Web interface**: Remote monitoring via Flask/FastAPI
+2. **Data logging**: SQLite database for historical sensor trends
+3. **Email/SMS alerts**: Integration with notification services
+4. **Configurable thresholds**: GUI settings panel for alert customization
+5. **Multi-sensor support**: Display data from multiple BME690 sensors (0x76 + 0x77)
+6. **RF monitoring improvements**: Real-time signal strength graph
+7. **System stats**: CPU temperature, memory usage, disk space
+8. **Auto-calibration**: Gas sensor baseline adjustment over time
+
+---
+
 ## [2.0.1] - 2026-01-01
 ### Fixed
 - **Import handling in bme690_mcp.py**: Made imports more robust to handle different execution contexts
