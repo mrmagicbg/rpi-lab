@@ -98,7 +98,7 @@ class TPMSReading:
 
 
 class TPMSDecoder:
-    """TPMS protocol decoder supporting multiple manufacturers""
+    """TPMS protocol decoder supporting multiple manufacturers"""
     
     # Common TPMS sync words/preambles
     SCHRADER_SYNC = [0x55, 0x55]  # Common preamble

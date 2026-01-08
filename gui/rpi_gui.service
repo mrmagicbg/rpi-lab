@@ -8,7 +8,6 @@ Type=simple
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/mrmagic/.Xauthority"
 Environment="PYTHONUNBUFFERED=1"
-Environment="BME690_DRY_RUN=1"
 ExecStartPre=/bin/sleep 5
 ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_gui.py
 Restart=on-failure
