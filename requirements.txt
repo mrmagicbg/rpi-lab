@@ -6,7 +6,7 @@ loguru==0.7.0
 evdev==1.9.2
 
 # BME690 Environmental Sensor
-bme690==0.3.2
+bme690==1.0.0
 # Optional: smbus2 for I2C; system package python3-smbus also used
 smbus2==0.5.2
 
