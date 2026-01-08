@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.2] - 2026-01-08
+
+### Fixed - Python Dependencies
+- **Requirements** (`requirements.txt`)
+  - Updated bme690 library version from 0.3.2 to 1.0.0 (latest available on PyPI/piwheels)
+  - Updated smbus2 library version from 0.5.2 to 0.6.0 (0.5.2 not available)
+  - Fixed "ModuleNotFoundError: No module named 'bme690'" error on fresh deployments
+  - Ensures BME690 sensor works properly instead of falling back to dry-run mode
+
+### Changed
+- Virtual environment now properly installs all required sensor libraries
+- BME690 sensor initializes with hardware instead of simulation mode
+
 ## [3.0.1] - 2026-01-08
 
 ### Fixed - Critical Bug Fixes for Deployment & RF Tools
