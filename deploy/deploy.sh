@@ -216,7 +216,8 @@ check_system_prereqs(){
 	local installed=0
 	
 	for pkg in "${required_packages[@]}"; do
-		if dpkg -l | grep -q "^ii  $pkg "; then
+		# Robust install check (handles multi-arch names like python3:armhf)
+		if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"; then
 			ok "$pkg installed"
 			((installed++))
 		else
