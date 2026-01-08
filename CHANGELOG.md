@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.4] - 2026-01-08
+
+### Added - Gas Heater Status Indicators
+- **GUI Enhancements** (`gui/rpi_gui.py`)
+  - Added real-time gas heater status display with color-coded indicators
+  - Gas heater status shows current state with resistance value in kΩ
+  - 7 distinct status levels:
+    - ⚠️ Gas Detected (< 5kΩ) - Red
+    - 🔥 Initial Warm-Up (5-10kΩ) - Orange
+    - ⏳ Stabilizing (10-20kΩ) - Yellow
+    - 📈 Continued Stabilization (20-40kΩ) - Light Yellow
+    - 🔄 Further Stabilization (40-60kΩ) - Light Green
+    - ✅ Stabilized (60-100kΩ) - Green
+    - ✓ Normal Operation (> 100kΩ) - Dark Green
+  - Status text now uses consistent font size (10pt) with other GUI elements
+  - Separate display for last update time and gas heater status
+  
+- **Deployment Script** (`deploy/deploy.sh`)
+  - Added comprehensive help documentation (-h/--help)
+  - Usage examples for common deployment scenarios
+  - All deployment phases documented
+  - Troubleshooting section with recovery instructions
+
+### Changed
+- Gas heater status is now prominently displayed below sensor readings
+- Status updates reflect real-time air quality conditions
+- Visual feedback helps understand sensor stabilization process
+
 ## [3.0.3] - 2026-01-08
 
 ### Fixed - BME690 Real Sensor & TPMS Monitor

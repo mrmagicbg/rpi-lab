@@ -326,16 +326,27 @@ class RPILauncherGUI:
         )
         self.gas_label.pack(side='left', padx=5)
         
-        # Status label
+        # Status label (last update)
         self.sensor_status = tk.Label(
             self.sensor_frame,
             text="Initializing sensor...",
-            font=('Arial', 8),
+            font=('Arial', 10),
             fg='#888888',
             bg='#2d2d2d',
-            pady=5
+            pady=2
         )
         self.sensor_status.pack()
+        
+        # Gas heater status label
+        self.gas_heater_status = tk.Label(
+            self.sensor_frame,
+            text="",
+            font=('Arial', 10, 'bold'),
+            fg='#888888',
+            bg='#2d2d2d',
+            pady=2
+        )
+        self.gas_heater_status.pack()
         
         # Button container frame
         button_frame = tk.Frame(main_frame, bg='#1e1e1e')
@@ -445,6 +456,36 @@ class RPILauncherGUI:
         # Update network info every 30 seconds
         self.root.after(30000, self.update_network_info)
     
+    def get_gas_heater_status(self, gas_resistance):
+        """Determine gas heater status based on resistance value.
+        
+        Args:
+            gas_resistance: Gas resistance in Ohms
+            
+        Returns:
+            Tuple of (status_text, color)
+        """
+        if gas_resistance is None:
+            return "N/A", "#888888"
+        
+        # Convert to kΩ for display
+        gas_kohm = gas_resistance / 1000.0
+        
+        if gas_resistance < 5000:  # < 5kΩ
+            return f"⚠️ Gas Detected ({gas_kohm:.1f}kΩ)", "#ff4444"
+        elif gas_resistance < 10000:  # 5-10kΩ
+            return f"🔥 Initial Warm-Up ({gas_kohm:.1f}kΩ)", "#ffaa00"
+        elif gas_resistance < 20000:  # 10-20kΩ
+            return f"⏳ Stabilizing ({gas_kohm:.1f}kΩ)", "#ffdd00"
+        elif gas_resistance < 40000:  # 20-40kΩ
+            return f"📈 Continued Stabilization ({gas_kohm:.1f}kΩ)", "#ffee88"
+        elif gas_resistance < 60000:  # 40-60kΩ
+            return f"🔄 Further Stabilization ({gas_kohm:.1f}kΩ)", "#88dd88"
+        elif gas_resistance < 100000:  # 60-100kΩ
+            return f"✅ Stabilized ({gas_kohm:.1f}kΩ)", "#00dd00"
+        else:  # > 100kΩ
+            return f"✓ Normal Operation ({gas_kohm:.1f}kΩ)", "#00aa00"
+    
     def check_sensor_alerts(self, h, t, p, g):
         """Check sensor values and trigger alerts if thresholds exceeded."""
         current_time = datetime.now()
@@ -512,11 +553,16 @@ class RPILauncherGUI:
                 self.update_interval = 5000  # Reset to normal interval
                 
                 status_text = "✓ Last updated: " + self.get_current_time()
-                if data.get("heat_stable"):
-                    status_text += " • Gas heater stable"
                 self.sensor_status.config(
                     text=status_text,
                     fg='#00aa00'
+                )
+                
+                # Update gas heater status with color coding
+                gas_status_text, gas_status_color = self.get_gas_heater_status(g)
+                self.gas_heater_status.config(
+                    text=gas_status_text,
+                    fg=gas_status_color
                 )
                 
                 # Check for alert conditions
