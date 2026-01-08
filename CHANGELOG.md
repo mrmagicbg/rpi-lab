@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.3] - 2026-01-08
+
+### Fixed - BME690 Real Sensor & TPMS Monitor
+- **Service Configuration** (`gui/rpi_gui.service`)
+  - Removed `BME690_DRY_RUN=1` environment variable
+  - Sensor now uses real hardware instead of simulated values
+  - Accurate temperature, humidity, pressure, and gas readings from BME690
+  
+- **TPMS Monitor** (`rf/tpms_decoder.py`)
+  - Fixed Python syntax error: missing closing quote in TPMSDecoder docstring
+  - Fixed IndentationError that prevented TPMS monitor GUI from launching
+  - TPMS monitor button now works correctly
+
+### Changed
+- BME690 sensor now reports real values from hardware at I2C address 0x76
+- Gas resistance readings reflect actual air quality (typically 5-200kΩ depending on conditions)
+- Gas alerts will trigger during heater warm-up period (first ~5 minutes after startup)
+
 ## [3.0.2] - 2026-01-08
 
 ### Fixed - Python Dependencies
