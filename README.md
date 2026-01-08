@@ -6,19 +6,27 @@ Overview
 RPI Lab is a comprehensive Raspberry Pi monitoring and control system with integrated hardware support for environmental sensing, RF monitoring, and audio alerts:
 
 - **`sensors/`** — **BME690 environmental sensor** (temperature, humidity, pressure, gas) with **PWM speaker alerts**
-- **`gui/`** — **Touch-friendly GUI** with network info, sensor display, alerts, and system controls
+- **`gui/`** — **Touch-friendly GUI** with network info, sensor display, alerts, and system controls + **TUI** for SSH monitoring
 - **`rf/`** — **TPMS tire pressure monitoring** with CC1101 RF transceiver (433 MHz)
 - **`display/`** — Display and touchscreen setup scripts (Waveshare 4.3" DSI Rev 2.2)
 - **`deploy/`** — GitHub-based deployment with branch selection and automatic rollback
 
 ### Key Features
 
-✨ **Enhanced GUI** (v3.0.0)
+✨ **Enhanced GUI** (v3.0.4)
 - Real-time network information (IP/mask, gateway, DNS servers)
 - BME690 sensor monitoring with compact 2x2 grid display
+- Live gas heater status with color-coded indicators (7 levels)
 - Intelligent audio alerts for environmental thresholds
 - Test speaker button for audio verification
 - Full-screen touch-optimized interface (800x480)
+
+📟 **TUI (Text User Interface)** - SSH Monitoring
+- Real-time sensor monitoring via SSH
+- Color-coded gas heater status indicators
+- Minimal resource usage for remote monitoring
+- Perfect for headless access or debugging
+- Usage: `python /opt/rpi-lab/gui/rpi_tui.py`
 
 🔊 **Smart Audio Alerts**
 - **Gas detection**: Beep every 15 seconds when volatile gases detected
@@ -205,6 +213,53 @@ The GUI application provides an intuitive touch interface optimized for the Wave
 - **Confirmation Dialogs**: Destructive actions (reboot, exit) require confirmation
 - **Fullscreen Mode**: F11 to toggle, Escape to exit (keyboard shortcuts)
 - **Auto-start**: Launches automatically on boot via systemd service
+
+TUI (Text User Interface) - SSH Monitoring
+--------------------------------------------
+
+Monitor sensor data remotely via SSH using the rich-based TUI interface.
+
+### Features
+
+- **Real-time Sensor Display**: Temperature, humidity, pressure, gas resistance
+- **Color-coded Gas Status**: 7-level gas heater status with visual indicators
+  - ⚠️  Gas Detected (< 5kΩ) - Red
+  - 🔥 Initial Warm-Up (5-10kΩ) - Orange
+  - ⏳ Stabilizing (10-20kΩ) - Yellow
+  - 📈 Continued Stabilization (20-40kΩ) - Bright Yellow
+  - 🔄 Further Stabilization (40-60kΩ) - Light Green
+  - ✅ Stabilized (60-100kΩ) - Green
+  - ✓ Normal Operation (> 100kΩ) - Bright Green
+- **RF/TPMS Monitoring**: View detected tire pressure sensors
+- **Minimal Overhead**: Lightweight terminal-based interface
+- **Auto-refresh**: Configurable update interval (default: 2 seconds)
+
+### Usage
+
+```bash
+# SSH into your Pi
+ssh user@raspberry-pi-ip
+
+# Monitor sensor data only (default)
+/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_tui.py
+
+# Monitor with custom refresh interval
+/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_tui.py --interval 5.0
+
+# Show RF/TPMS data only
+/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_tui.py --rf
+
+# Show both sensor and RF data side-by-side
+/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/gui/rpi_tui.py --both
+
+# Press Ctrl+C to exit
+```
+
+### Requirements
+
+- SSH access to Raspberry Pi
+- Terminal with color support (most modern terminals)
+- Already included in requirements.txt (rich library)
 
 TPMS RF Monitor
 ---------------

@@ -307,7 +307,7 @@ class RPILauncherGUI:
 
         # Gas resistance display
         gas_container = tk.Frame(sensor_data_frame, bg='#2d2d2d')
-        gas_container.grid(row=1, column=1, padx=10, pady=2)
+        gas_container.grid(row=1, column=1, padx=10, pady=2, sticky='w')
 
         tk.Label(
             gas_container,
@@ -320,7 +320,7 @@ class RPILauncherGUI:
         self.gas_label = tk.Label(
             gas_container,
             text="-- Ω",
-            font=('Arial', 14, 'bold'),
+            font=('Arial', 12, 'bold'),
             fg='#ffae00',
             bg='#2d2d2d'
         )
@@ -486,6 +486,35 @@ class RPILauncherGUI:
         else:  # > 100kΩ
             return f"✓ Normal Operation ({gas_kohm:.1f}kΩ)", "#00aa00"
     
+    def get_gas_label_text(self, gas_resistance):
+        """Get short gas label text for live display.
+        
+        Args:
+            gas_resistance: Gas resistance in Ohms
+            
+        Returns:
+            Formatted string for gas label
+        """
+        if gas_resistance is None:
+            return "N/A"
+        
+        gas_kohm = gas_resistance / 1000.0
+        
+        if gas_resistance < 5000:
+            return f"Gas! ({gas_resistance:.0f} Ω)"
+        elif gas_resistance < 10000:
+            return f"Warm-Up ({gas_kohm:.1f} kΩ)"
+        elif gas_resistance < 20000:
+            return f"Stabilizing ({gas_kohm:.1f} kΩ)"
+        elif gas_resistance < 40000:
+            return f"Cont. Stab. ({gas_kohm:.1f} kΩ)"
+        elif gas_resistance < 60000:
+            return f"Further Stab. ({gas_kohm:.1f} kΩ)"
+        elif gas_resistance < 100000:
+            return f"Stabilized ({gas_kohm:.1f} kΩ)"
+        else:
+            return f"Normal ({gas_kohm:.1f} kΩ)"
+    
     def check_sensor_alerts(self, h, t, p, g):
         """Check sensor values and trigger alerts if thresholds exceeded."""
         current_time = datetime.now()
@@ -526,7 +555,10 @@ class RPILauncherGUI:
             self.temp_label.config(text=data["temperature_str"]) 
             self.humid_label.config(text=data["humidity_str"]) 
             self.press_label.config(text=data["pressure_str"]) 
-            self.gas_label.config(text=data["gas_res_str"]) 
+            
+            # Update gas label with status text
+            gas_text = self.get_gas_label_text(g)
+            self.gas_label.config(text=gas_text) 
 
             if data["temperature_str"] == "N/A":
                 # Sensor not responding - increment error counter

@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.5] - 2026-01-08
+
+### Added - TUI Interface & Enhanced Gas Display
+- **TUI (Text User Interface)** (`gui/rpi_tui.py`)
+  - SSH-accessible real-time monitoring interface using rich library
+  - Color-coded gas heater status display with 7 levels
+  - Sensor data panel showing temperature, humidity, pressure, gas
+  - RF/TPMS data panel (placeholder for future integration)
+  - Multiple display modes: --sensor, --rf, --both
+  - Configurable refresh interval (default: 2 seconds)
+  - Perfect for headless monitoring and remote debugging
+  
+- **Enhanced Gas Label** (`gui/rpi_gui.py`)
+  - Gas label now shows status text with ohms value
+  - Abbreviated status names for compact display
+  - Examples: "Warm-Up (8.5 kΩ)", "Stabilizing (15.2 kΩ)", "Normal (125.3 kΩ)"
+  - Consistent with full status display below sensor readings
+
+### Changed
+- Gas label font reduced to 12pt for better fit with status text
+- Gas container uses sticky='w' for proper left alignment
+- Separate function `get_gas_label_text()` for abbreviated status display
+
 ## [3.0.4] - 2026-01-08
 
 ### Added - Gas Heater Status Indicators
