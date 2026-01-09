@@ -46,7 +46,7 @@ class BME690Sensor:
             return
 
         if not LIB_AVAILABLE:
-            logger.error("bme690 library not installed")
+            logger.error("pimoroni-bme680 library not installed")
             return
 
         try:

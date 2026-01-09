@@ -16,11 +16,11 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# 1. Install paho-mqtt in virtual environment
-echo "Step 1: Installing paho-mqtt Python library..."
+# 1. Install MQTT dependencies in virtual environment
+echo "Step 1: Installing Python dependencies..."
 if [ -f "$PROJECT_ROOT/.venv/bin/pip" ]; then
-    "$PROJECT_ROOT/.venv/bin/pip" install paho-mqtt
-    echo "✓ paho-mqtt installed"
+    "$PROJECT_ROOT/.venv/bin/pip" install paho-mqtt pimoroni-bme680
+    echo "✓ Dependencies installed (paho-mqtt, pimoroni-bme680)"
 else
     echo "Error: Virtual environment not found at $PROJECT_ROOT/.venv"
     echo "Run venv_setup.sh first"
@@ -50,6 +50,11 @@ UPDATE_INTERVAL=${UPDATE_INTERVAL:-60}
 # Create configured service file
 SERVICE_FILE="/etc/systemd/system/mqtt_publisher.service"
 cp "$PROJECT_ROOT/sensors/mqtt_publisher.service" "$SERVICE_FILE"
+
+# Update paths to actual PROJECT_ROOT (in case not /opt/rpi-lab)
+sed -i "s|WorkingDirectory=/opt/rpi-lab|WorkingDirectory=$PROJECT_ROOT|" "$SERVICE_FILE"
+sed -i "s|/opt/rpi-lab/.venv/bin/python3|$PROJECT_ROOT/.venv/bin/python3|" "$SERVICE_FILE"
+sed -i "s|/opt/rpi-lab/sensors/mqtt_publisher.py|$PROJECT_ROOT/sensors/mqtt_publisher.py|" "$SERVICE_FILE"
 
 # Update service file with user configuration
 sed -i "s|Environment=\"MQTT_BROKER=.*\"|Environment=\"MQTT_BROKER=$MQTT_BROKER\"|" "$SERVICE_FILE"
