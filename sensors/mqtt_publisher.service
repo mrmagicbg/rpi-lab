@@ -7,9 +7,11 @@ Wants=network-online.target
 Type=simple
 User=mrmagic
 WorkingDirectory=/opt/rpi-lab
-ExecStart=/opt/rpi-lab/.venv/bin/python /opt/rpi-lab/sensors/mqtt_publisher.py
-Restart=on-failure
+ExecStart=/opt/rpi-lab/.venv/bin/python3 /opt/rpi-lab/sensors/mqtt_publisher.py
+Restart=always
 RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
 
 # MQTT Configuration
 Environment="MQTT_BROKER=your-ha-external-url.com"
@@ -28,5 +30,7 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=mqtt_publisher
 
+[Install]
+WantedBy=multi-user.target
 [Install]
 WantedBy=multi-user.target

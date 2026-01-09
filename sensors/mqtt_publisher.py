@@ -11,6 +11,7 @@ import sys
 import time
 import json
 import logging
+import signal
 from datetime import datetime
 
 try:
@@ -44,19 +45,42 @@ class BME690Publisher:
     """Publishes BME690 sensor data to Home Assistant via MQTT."""
     
     def __init__(self):
-        self.sensor = BME690Sensor()
+        self.running = True
+        self.sensor = None
         self.client = mqtt.Client(client_id=f"{DEVICE_NAME}_bme690")
         self.connected = False
+        
+        # Setup signal handlers for graceful shutdown
+        signal.signal(signal.SIGTERM, self._signal_handler)
+        signal.signal(signal.SIGINT, self._signal_handler)
         
         # Setup callbacks
         self.client.on_connect = self.on_connect
         self.client.on_disconnect = self.on_disconnect
         self.client.on_message = self.on_message
         
+        # Initialize sensor
+        try:
+            logger.info("Initializing BME690 sensor...")
+            self.sensor = BME690Sensor()
+            if not self.sensor.available:
+                logger.error("BME690 sensor not available - check I2C connection")
+                self.sensor = None
+            else:
+                logger.info("BME690 sensor initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize BME690 sensor: {e}")
+            self.sensor = None
+        
         # Setup authentication if provided
         if MQTT_USER and MQTT_PASSWORD:
             self.client.username_pw_set(MQTT_USER, MQTT_PASSWORD)
             logger.info("MQTT authentication configured")
+    
+    def _signal_handler(self, signum, frame):
+        """Handle shutdown signals gracefully."""
+        logger.info(f"Received signal {signum}, shutting down...")
+        self.running = False
     
     def on_connect(self, client, userdata, flags, rc):
         """Callback for when client connects to MQTT broker."""
@@ -149,11 +173,15 @@ class BME690Publisher:
     
     def publish_sensor_data(self):
         """Read sensor and publish data to MQTT."""
+        if not self.sensor:
+            logger.debug("Sensor not available")
+            return
+        
         try:
             h, t, p, g = self.sensor.read()
             
             if t is None:
-                logger.warning("Sensor read returned None values")
+                logger.debug("Sensor read returned None values")
                 return
             
             timestamp = datetime.now().isoformat()
@@ -223,16 +251,17 @@ class BME690Publisher:
         logger.info(f"Starting sensor publishing loop (interval: {UPDATE_INTERVAL}s)")
         
         try:
-            while True:
+            while self.running:
                 if self.connected:
                     self.publish_sensor_data()
                 else:
-                    logger.warning("Not connected to MQTT broker, waiting for reconnection...")
+                    logger.debug("Not connected to MQTT broker, waiting for reconnection...")
                 
                 time.sleep(UPDATE_INTERVAL)
                 
-        except KeyboardInterrupt:
-            logger.info("Received interrupt signal, shutting down...")
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
+            return 1
         finally:
             self.client.loop_stop()
             self.client.disconnect()
