@@ -18,11 +18,11 @@ logger = logging.getLogger(__name__)
 DRY_RUN = os.getenv("BME690_DRY_RUN", "0") == "1"
 
 try:
-    import bme690
+    import bme680
     LIB_AVAILABLE = True
 except ImportError:
     LIB_AVAILABLE = False
-    logger.warning("bme690 library not available. Sensor will use dry-run if enabled.")
+    logger.warning("bme680 library not available. Sensor will use dry-run if enabled.")
 
 
 class BME690Sensor:
@@ -52,22 +52,22 @@ class BME690Sensor:
         try:
             if i2c_addr is None:
                 try:
-                    self.sensor = bme690.BME690(bme690.I2C_ADDR_PRIMARY)
-                    self.i2c_addr = bme690.I2C_ADDR_PRIMARY
+                    self.sensor = bme680.BME680(bme680.I2C_ADDR_PRIMARY)
+                    self.i2c_addr = bme680.I2C_ADDR_PRIMARY
                 except (RuntimeError, IOError):
-                    self.sensor = bme690.BME690(bme690.I2C_ADDR_SECONDARY)
-                    self.i2c_addr = bme690.I2C_ADDR_SECONDARY
+                    self.sensor = bme680.BME680(bme680.I2C_ADDR_SECONDARY)
+                    self.i2c_addr = bme680.I2C_ADDR_SECONDARY
             else:
-                self.sensor = bme690.BME690(i2c_addr)
+                self.sensor = bme680.BME680(i2c_addr)
 
             # Configure oversampling and filter
-            self.sensor.set_humidity_oversample(bme690.OS_2X)
-            self.sensor.set_pressure_oversample(bme690.OS_4X)
-            self.sensor.set_temperature_oversample(bme690.OS_8X)
-            self.sensor.set_filter(bme690.FILTER_SIZE_3)
+            self.sensor.set_humidity_oversample(bme680.OS_2X)
+            self.sensor.set_pressure_oversample(bme680.OS_4X)
+            self.sensor.set_temperature_oversample(bme680.OS_8X)
+            self.sensor.set_filter(bme680.FILTER_SIZE_3)
 
             # Enable gas measurement and set heater profile
-            self.sensor.set_gas_status(bme690.ENABLE_GAS_MEAS)
+            self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
             self.sensor.set_gas_heater_temperature(320)
             self.sensor.set_gas_heater_duration(150)
             self.sensor.select_gas_heater_profile(0)
