@@ -19,8 +19,8 @@ fi
 # 1. Install MQTT dependencies in virtual environment
 echo "Step 1: Installing Python dependencies..."
 if [ -f "$PROJECT_ROOT/.venv/bin/pip" ]; then
-    "$PROJECT_ROOT/.venv/bin/pip" install paho-mqtt pimoroni-bme680
-    echo "✓ Dependencies installed (paho-mqtt, pimoroni-bme680)"
+    "$PROJECT_ROOT/.venv/bin/pip" install paho-mqtt bme680
+    echo "✓ Dependencies installed (paho-mqtt, bme680)"
 else
     echo "Error: Virtual environment not found at $PROJECT_ROOT/.venv"
     echo "Run venv_setup.sh first"
