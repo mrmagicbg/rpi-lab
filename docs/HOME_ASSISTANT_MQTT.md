@@ -109,6 +109,24 @@ sudo ufw allow 8883/tcp
 
 ### Part 2: Raspberry Pi Setup
 
+#### Important: Virtual Environment Paths
+
+The MQTT publisher service runs from `/opt/rpi-lab/.venv` (production directory), **not** `~/rpi-lab/.venv` (development directory). All Python packages must be installed in the production venv.
+
+**Common mistake:**
+```bash
+# ❌ Wrong - installs to dev venv
+cd ~/rpi-lab
+source .venv/bin/activate
+pip install bme680  # Goes to ~/rpi-lab/.venv
+```
+
+**Correct:**
+```bash
+# ✅ Right - installs to production venv
+sudo /opt/rpi-lab/.venv/bin/pip install bme680 paho-mqtt
+```
+
 #### 1. Pull Latest Code
 
 On your Pi:
@@ -118,41 +136,153 @@ git pull origin main
 sudo rsync -av ~/rpi-lab/ /opt/rpi-lab/
 ```
 
-#### 2. Run MQTT Installer
+#### 2. Sync to Production & Update Dependencies
+
+```bash
+sudo rsync -av ~/rpi-lab/ /opt/rpi-lab/ --exclude '.git' --exclude '__pycache__'
+```
+
+Recreate the production venv cleanly (recommended):
+```bash
+cd /opt/rpi-lab
+sudo rm -rf .venv
+sudo python3 -m venv .venv --system-site-packages
+sudo /opt/rpi-lab/.venv/bin/pip install -r requirements.txt
+```
+
+Or install just the MQTT dependencies:
+```bash
+sudo /opt/rpi-lab/.venv/bin/pip install bme680==2.0.0 paho-mqtt==1.6.1
+```
+
+#### 3. Run MQTT Installer
 
 ```bash
 sudo /opt/rpi-lab/install/install_mqtt.sh
 ```
 
-**You'll be prompted for:**
-- **MQTT Broker URL:** your-ha-external-url.com
-- **MQTT Port:** 1883 (or 8883 for TLS)
-- **MQTT Username:** mqtt_user
-- **MQTT Password:** your_secure_password_here
-- **Device Name:** rpi_lab (or custom name)
-- **Update Interval:** 60 (seconds)
+**Configuration Prompts:**
 
-#### 3. Verify Service
+| Prompt | Example | Notes |
+|--------|---------|-------|
+| MQTT Broker URL | `ha.mrmagic.synology.me` | External URL or hostname |
+| MQTT Port | `1883` | Standard MQTT (or 8883 for TLS) |
+| MQTT Username | `mqtt_user` | User created in HA |
+| MQTT Password | (hidden) | Generated in HA MQTT add-on |
+| Device Name | `rpi_lab` | Prefix for HA entity names |
+| Update Interval | `300` | Seconds between sensor reads (300s = 5min) |
+
+The script will:
+1. Install `bme680` and `paho-mqtt` in production venv
+2. Copy service file to `/etc/systemd/system/mqtt_publisher.service`
+3. Update paths to match actual installation location
+4. Configure MQTT broker settings
+5. Enable and start the systemd service
+
+#### 4. Verify Service
 
 ```bash
 # Check service status
 sudo systemctl status mqtt_publisher.service
 
-# View logs
+# View logs in real-time
 sudo journalctl -u mqtt_publisher.service -f
 ```
 
-**Expected output:**
+**Expected log output:**
 ```
-Connected to MQTT broker at your-ha-external-url.com:1883
-Published discovery config for temperature
-Published discovery config for humidity
-Published discovery config for pressure
-Published discovery config for gas_resistance
-Published: T=23.5°C, H=45.2%, P=1013.2hPa, G=125430Ω
+INFO - === BME690 MQTT Publisher Starting ===
+INFO - MQTT Broker: ha.mrmagic.synology.me:1883
+INFO - Device Name: rpi_lab
+INFO - Update Interval: 300s
+INFO - Initializing BME690 sensor...
+INFO - BME690 sensor initialized successfully
+INFO - MQTT authentication configured
+INFO - Connecting to MQTT broker ha.mrmagic.synology.me:1883 (attempt 1/5)
+INFO - Connected to MQTT broker at ha.mrmagic.synology.me:1883
+INFO - Published discovery config for temperature
+INFO - Published discovery config for humidity
+INFO - Published discovery config for pressure
+INFO - Published discovery config for gas_resistance
+INFO - Starting sensor publishing loop (interval: 300s)
+INFO - Published: T=23.5°C, H=45.2%, P=1013.2hPa, G=125430Ω
 ```
 
-### Part 3: Verify in Home Assistant
+If you see `bme680 library not installed`, see [bme680 library not installed](#bme680-library-not-installed) in Troubleshooting.
+
+#### 5. Verify in Home Assistant
+
+1. Go to **Settings** → **Devices & Services** → **MQTT**
+2. You should see "RPI Lab BME690" device
+3. Click on it to see 4 sensors:
+   - RPI Lab Temperature (°C)
+   - RPI Lab Humidity (%)
+   - RPI Lab Pressure (hPa)
+   - RPI Lab Gas Resistance (Ω)
+4. Verify that sensor values are updating every 5 minutes (300s interval)
+
+### Implementation Details
+
+#### Files Created/Modified
+
+**New files:**
+- `sensors/mqtt_publisher.py` - MQTT publisher with auto-discovery and error handling
+- `sensors/mqtt_publisher.service` - Systemd service file for MQTT publisher
+- `install/install_mqtt.sh` - Interactive installation script
+- `docs/HOME_ASSISTANT_MQTT.md` - This guide
+
+**Modified files:**
+- `requirements.txt` - Added `paho-mqtt==1.6.1` and `bme680==2.0.0`
+- `sensors/bme690.py` - Updated import from `bme690` to `bme680`
+- `deploy/deploy.sh` - Fixed prerequisite checking (dpkg-query)
+
+#### MQTT Publishing Details
+
+**Auto-Discovery Topics:**
+```
+homeassistant/sensor/{device_name}_temperature/config
+homeassistant/sensor/{device_name}_humidity/config
+homeassistant/sensor/{device_name}_pressure/config
+homeassistant/sensor/{device_name}_gas_resistance/config
+```
+
+**State Topics:**
+```
+homeassistant/sensor/{device_name}/temperature/state
+homeassistant/sensor/{device_name}/humidity/state
+homeassistant/sensor/{device_name}/pressure/state
+homeassistant/sensor/{device_name}/gas_resistance/state
+```
+
+**State Payload Format:**
+```json
+{
+  "value": 23.5,
+  "timestamp": "2026-01-09T09:39:05.763456"
+}
+```
+
+#### Device Information
+
+Advertised to Home Assistant:
+```json
+{
+  "identifiers": ["rpi_lab_bme690"],
+  "name": "RPI Lab BME690",
+  "model": "BME690",
+  "manufacturer": "Bosch",
+  "sw_version": "1.0.0"
+}
+```
+
+#### Service Behavior
+
+- **Restart Policy:** `always` with 10s delay
+- **Start Limit:** 5 restarts per 300 seconds
+- **I2C Access:** Runs as `mrmagic` user with `i2c` group access
+- **Graceful Shutdown:** Handles SIGTERM/SIGINT signals from systemd
+- **Reconnection:** Exponential backoff (5→10→20→40→80 seconds)
+- **Log Destination:** Journal (view with `journalctl -u mqtt_publisher.service`)
 
 1. Go to **Settings** → **Devices & Services** → **MQTT**
 2. You should see "RPI Lab BME690" device
@@ -249,6 +379,31 @@ Instead of exposing MQTT to internet:
 4. **Restrict IP:** If possible, whitelist Pi's IP range
 
 ## Troubleshooting
+
+### bme680 library not installed
+
+**Error:**
+```
+ERROR - bme680 library not installed (pip install bme680)
+ERROR - BME690 sensor not available - check I2C connection
+```
+
+**Cause:** Libraries installed in wrong virtual environment. The service uses `/opt/rpi-lab/.venv`, not `~/rpi-lab/.venv`.
+
+**Solution:**
+```bash
+# Install in the production venv (what service uses)
+/opt/rpi-lab/.venv/bin/pip install bme680 paho-mqtt
+
+# Or recreate the venv cleanly
+cd /opt/rpi-lab
+sudo rm -rf .venv
+sudo python3 -m venv .venv --system-site-packages
+sudo /opt/rpi-lab/.venv/bin/pip install -r requirements.txt
+
+# Restart service
+sudo systemctl restart mqtt_publisher.service
+```
 
 ### Connection Failed
 
