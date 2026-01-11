@@ -78,7 +78,7 @@ declare -A IMPORT_NAMES=(
 
 # Function to check if system package is installed
 is_system_package_installed() {
-  dpkg -l | grep -q "^ii  $1 " && return 0 || return 1
+  dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed" && return 0 || return 1
 }
 
 # Function to check if Python package is installed
