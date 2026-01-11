@@ -3,11 +3,12 @@
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
 ## [3.0.11] - 2026-01-11
-**BME680 Pressure Reading Bugfix**
+**BME690/BME688 Pressure Reading Bugfix**
 
 ### Fixed
 - **CRITICAL:** Pressure readings corrected from 4.33x too high to accurate values
-  - Root cause: bme680 library v2.0.0 pressure calculation bug
+  - Root cause: bme680 library v2.0.0 pressure calculation bug with BME688 chip
+  - Hardware: Pimoroni BME690 breakout (uses BME688 sensor chip ID 0x61, variant 0x02)
   - Applied correction factor: `pressure = pressure_raw / 4.33`
   - Readings now ~1013 hPa (correct) instead of ~4391 hPa (incorrect)
   - Affects all display outputs: GUI, TUI, MQTT

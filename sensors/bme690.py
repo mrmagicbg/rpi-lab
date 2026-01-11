@@ -11,7 +11,7 @@ Environment Variables:
   BME690_HUM_OFFSET=0.0   : Humidity offset in %RH (default: 0.0)
 
 Humidity Calibration:
-  The gas heater on BME680/690 can cause lower humidity readings. If readings
+  The gas heater on BME690/BME688 can cause lower humidity readings. If readings
   are consistently below a reference meter, disable the heater (BME690_ENABLE_GAS=0)
   or apply calibration: final_humidity = raw * BME690_HUM_SCALE + BME690_HUM_OFFSET
   (result is clamped to 0-100%RH).
@@ -132,7 +132,7 @@ class BME690Sensor:
                     self.heat_stable = bool(getattr(self.sensor.data, "heat_stable", False))
                     temperature = float(self.sensor.data.temperature)
                     
-                    # BUGFIX: bme680 library v2.0.0 has pressure calculation bug
+                    # BUGFIX: bme680 library v2.0.0 with BME688 chip (BME690 breakout)
                     # Pressure reads 4.33x too high - apply correction factor
                     pressure_raw = float(self.sensor.data.pressure)
                     pressure = pressure_raw / 4.33
