@@ -2,6 +2,44 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.0.15] - 2026-01-11
+**MQTT Configuration System with .env Support**
+
+### Added
+- **Interactive MQTT configuration tool:** `install/configure_mqtt.sh`
+  - Prompts for all MQTT settings (broker, port, username, password)
+  - Creates/updates `/opt/rpi-lab/.env` automatically
+  - Tests connection to MQTT broker
+  - Restarts service and shows status
+  - Can be run anytime to reconfigure
+
+### Fixed
+- **mqtt_publisher.service now loads .env file automatically**
+  - Added `EnvironmentFile=/opt/rpi-lab/.env` to service file
+  - Environment variables in .env file override defaults
+  - Fixes issue where .env file was created but not used
+  - Service no longer requires manual editing for configuration
+
+### Changed
+- Service file defaults changed from example values to sensible defaults
+  - `MQTT_BROKER` default: `homeassistant.local` (was `your-ha-external-url.com`)
+  - Empty username/password by default (override in .env)
+  - All settings now configurable via .env file
+
+### Documentation
+- Updated HOME_ASSISTANT_MQTT.md with:
+  - Option A: Interactive configuration tool (recommended)
+  - Option B: Manual .env file creation
+  - Removed outdated install_mqtt.sh references
+- Added configure_mqtt.sh to README common commands
+- Clear instructions for reconfiguration workflow
+
+### Notes
+- **Existing users:** Run `sudo bash install/configure_mqtt.sh` to migrate settings to .env
+- **New users:** Configuration tool handles entire setup process
+- **.env file location:** `/opt/rpi-lab/.env` (must be readable by service)
+- **Permissions:** .env file automatically set to 600 (secure)
+
 ## [3.0.14] - 2026-01-11
 **BME680/688 Gas Heater Re-enabled (Important Correction)**
 

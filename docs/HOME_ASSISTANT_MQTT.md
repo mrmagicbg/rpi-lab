@@ -155,29 +155,57 @@ Or install just the MQTT dependencies:
 sudo /opt/rpi-lab/.venv/bin/pip install bme680==2.0.0 paho-mqtt==1.6.1
 ```
 
-#### 3. Run MQTT Installer
+#### 3. Configure MQTT Settings
 
+**Option A: Interactive Configuration (Recommended)**
+
+Run the configuration tool:
 ```bash
-sudo /opt/rpi-lab/install/install_mqtt.sh
+cd /opt/rpi-lab
+sudo bash install/configure_mqtt.sh
 ```
 
-**Configuration Prompts:**
-
-| Prompt | Example | Notes |
-|--------|---------|-------|
-| MQTT Broker URL | `ha.mrmagic.synology.me` | External URL or hostname |
-| MQTT Port | `1883` | Standard MQTT (or 8883 for TLS) |
-| MQTT Username | `mqtt_user` | User created in HA |
-| MQTT Password | (hidden) | Generated in HA MQTT add-on |
-| Device Name | `rpi_lab` | Prefix for HA entity names |
-| Update Interval | `300` | Seconds between sensor reads (300s = 5min) |
+**Prompts:**
+```
+MQTT Broker hostname/IP: ha.mrmagic.synology.me
+MQTT Port: 1883
+MQTT Username: mqtt_user
+MQTT Password: ********
+Device Name: rpi_lab
+Update Interval (seconds): 60
+```
 
 The script will:
-1. Install `bme680` and `paho-mqtt` in production venv
-2. Copy service file to `/etc/systemd/system/mqtt_publisher.service`
-3. Update paths to match actual installation location
-4. Configure MQTT broker settings
-5. Enable and start the systemd service
+- Create/update `/opt/rpi-lab/.env` with your settings
+- Test connection to MQTT broker
+- Restart mqtt_publisher.service automatically
+- Show service status and logs
+- Can be run again anytime to reconfigure
+
+**Option B: Manual Configuration**
+
+Create `/opt/rpi-lab/.env`:
+```bash
+sudo nano /opt/rpi-lab/.env
+```
+
+Add:
+```bash
+# MQTT Configuration
+MQTT_BROKER=ha.mrmagic.synology.me
+MQTT_PORT=1883
+MQTT_USER=mqtt_user
+MQTT_PASSWORD=your_password
+MQTT_TOPIC_PREFIX=homeassistant
+DEVICE_NAME=rpi_lab
+UPDATE_INTERVAL=60
+```
+
+Set permissions and restart:
+```bash
+sudo chmod 600 /opt/rpi-lab/.env
+sudo systemctl restart mqtt_publisher.service
+```
 
 #### 4. Verify Service
 

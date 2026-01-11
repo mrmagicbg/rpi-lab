@@ -49,6 +49,10 @@ sudo systemctl status rpi_gui.service
 sudo systemctl restart rpi_gui.service
 sudo journalctl -u rpi_gui.service -f
 
+# MQTT configuration
+sudo bash /opt/rpi-lab/install/configure_mqtt.sh  # Interactive setup
+sudo journalctl -u mqtt_publisher.service -f      # View MQTT logs
+
 # SSH monitoring (aliases auto-created)
 ssh user@pi-ip
 rpi-tui                    # Full display
