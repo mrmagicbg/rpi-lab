@@ -2,6 +2,20 @@
 
 Raspberry Pi monitoring system with BME690 sensor, touch GUI, SSH monitoring, and TPMS RF support.
 
+## ⚠️ Important: BME680/688 Humidity Readings
+
+**DO NOT disable the gas heater** - it's required for proper sensor operation and accuracy.
+
+**If humidity readings seem low:**
+- The sensor is likely **correct** (±3%RH accuracy per Bosch datasheet)
+- Cheap reference sensors often read 10-20%RH **too high**
+- Gas heater impact is only 1-3%RH, not 30%RH
+- Verify against salt calibration test (NaCl saturated = 75%RH) before adjusting
+- See [docs/BME680.pdf](docs/BME680.pdf) for official specs
+- See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for calibration procedures
+
+**Key finding:** 38%RH at 4.5°C is normal for winter indoor air. Don't "fix" accurate readings!
+
 ## Quick Start
 
 ```bash

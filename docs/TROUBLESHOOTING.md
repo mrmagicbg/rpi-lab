@@ -122,58 +122,65 @@ Gas alert threshold: < 5kΩ (only "Gas Detected" level triggers beeping)
 
 Normal operation: > 60kΩ
 
-### Humidity Readings Too Low
+### Humidity Readings Seem Low
 
-**Symptom:** BME690 humidity reads 10-20%RH lower than GUI or reference meters
+**⚠️ IMPORTANT: READ THIS FIRST BEFORE ADJUSTING!**
 
-**Root Cause:** BME680/690 gas heater warms sensor and lowers humidity readings
+**Symptom:** BME690 humidity reads lower than a cheap sensor (DHT11/DHT22/other)
 
-**Solutions:**
+**STOP! The BME680/688 is likely CORRECT:**
+- BME680/688 accuracy: ±3%RH (Bosch datasheet - see docs/BME680.pdf)
+- Cheap sensors (DHT11/DHT22): often read 10-20%RH **too high**
+- Gas heater impact: only 1-3%RH, NOT 30%RH
+- **Do not disable gas heater** - it's needed for sensor accuracy and compensation
 
-1. **Disable gas heater** (recommended for accurate humidity):
+**Verify First:**
+
+1. **Salt calibration test (definitive reference):**
 ```bash
-# For GUI service
-sudo systemctl edit rpi_gui.service --full
-# Add under [Service]:
-Environment="BME690_ENABLE_GAS=0"
+# Create saturated salt solution in sealed container
+# NaCl (table salt) saturated solution = exactly 75%RH at 20°C
+# Place BME690 sensor in container for 8+ hours
+# Reading should be 73-77%RH (within ±3%RH tolerance)
+```
 
+2. **Check environment validity:**
+- 38%RH at 4.5°C is **normal** for winter indoor air
+- 38%RH at 20°C might indicate dry heating system (also normal)
+- Compare to weather station outdoor humidity readings
+
+3. **Question your reference sensor:**
+```bash
+cd /opt/rpi-lab
+source .venv/bin/activate
+python3 sensors/test_humidity_calibration.py
+# Compare BME690 to your "reference" - which is more plausible?
+```
+
+**Only calibrate if:**
+- Salt test shows consistent error (e.g., reads 70%RH in 75%RH environment)
+- You have a lab-grade hygrometer (not a cheap sensor)
+
+**Calibration (only after verification):**
+```bash
 # For MQTT publisher
 sudo systemctl edit mqtt_publisher.service --full
 # Add under [Service]:
-Environment="BME690_ENABLE_GAS=0"
+Environment="BME690_HUM_OFFSET=5.0"    # Add 5%RH
+# OR
+Environment="BME690_HUM_SCALE=1.1"     # Multiply by 1.1
 
 sudo systemctl daemon-reload
-sudo systemctl restart rpi_gui.service mqtt_publisher.service
+sudo systemctl restart mqtt_publisher.service rpi_gui.service
 ```
 
-2. **Apply humidity calibration** (if heater must stay on):
-```bash
-# Example: add 18%RH offset
-sudo systemctl edit rpi_gui.service --full
-# Add under [Service]:
-Environment="BME690_HUM_OFFSET=18.0"
+**DO NOT DO THIS:**
+- ❌ Disable gas heater (`BME690_ENABLE_GAS=0`) - reduces accuracy
+- ❌ Calibrate based on cheap DHT11/DHT22 sensors
+- ❌ Assume 70%RH is "correct" for all environments
+- ❌ Apply large offsets (>10%RH) without salt test verification
 
-# Or apply scaling factor (e.g., 1.2x)
-Environment="BME690_HUM_SCALE=1.2"
-
-sudo systemctl daemon-reload
-sudo systemctl restart rpi_gui.service
-```
-
-3. **Test calibration values**:
-```bash
-# Run sensor test with env vars
-cd /opt/rpi-lab
-source .venv/bin/activate
-BME690_ENABLE_GAS=0 python3 sensors/bme690.py
-# Compare output to reference meter
-
-# Try different offsets
-BME690_HUM_OFFSET=15.0 python3 sensors/bme690.py
-BME690_HUM_OFFSET=20.0 python3 sensors/bme690.py
-```
-
-**Note:** Humidity calibration applies to TUI, MQTT, and GUI simultaneously. Set env vars in all service files for consistency.
+**Note:** See [docs/BME680.pdf](BME680.pdf) for official Bosch specifications and accuracy tolerances.
 
 ## Touch Issues
 

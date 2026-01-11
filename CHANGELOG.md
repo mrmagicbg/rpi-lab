@@ -2,6 +2,32 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.0.14] - 2026-01-11
+**BME680/688 Gas Heater Re-enabled (Important Correction)**
+
+### Changed
+- **BME690_ENABLE_GAS default restored to 1 (enabled)** - KEEP IT ENABLED
+  - Gas heater is required for proper sensor operation and self-heating compensation
+  - Impact on humidity is only 1-3%RH, not 30%RH as initially suspected
+  - Disabling heater does NOT improve accuracy
+
+### Fixed
+- Corrected misunderstanding about humidity readings:
+  - BME680/688 sensors have ±3%RH accuracy (per Bosch datasheet)
+  - Low readings (38%RH) are likely CORRECT for actual environment
+  - Cheap reference sensors often over-read by 10-20%RH
+  - 38%RH at 4.5°C is normal for winter indoor air
+
+### Added
+- Prominent warning in README about not disabling gas heater
+- Reference to vendor datasheet (docs/BME680.pdf)
+- Salt calibration procedure recommendation
+
+### Notes
+- **IMPORTANT:** If you think humidity is wrong, verify with salt calibration test before adjusting
+- Do not calibrate based on cheap DHT11/DHT22 sensors - they are often inaccurate
+- See docs/TROUBLESHOOTING.md for proper calibration procedures
+
 ## [3.0.13] - 2026-01-11
 **Deployment Script Improvements**
 
