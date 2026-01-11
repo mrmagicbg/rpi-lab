@@ -77,15 +77,15 @@ def create_sensor_panel(sensor: BME690Sensor) -> Panel:
     # Humidity
     humid_str = f"{h:.1f} %RH" if h is not None else "N/A"
     humid_color = "yellow" if h and (h < 25 or h > 80) else "cyan"
-    table.add_row("💧 Humidity:", Text(humid_str, style=humid_color))
+    table.add_row("💧  Humidity:", Text(humid_str, style=humid_color))
     
     # Pressure
     press_str = f"{p:.1f} hPa" if p is not None else "N/A"
-    table.add_row("🌍 Pressure:", Text(press_str, style="magenta"))
+    table.add_row("🌍  Pressure:", Text(press_str, style="magenta"))
     
     # Gas resistance with status
     gas_status, gas_color = get_gas_status_text(g)
-    table.add_row("💨 Gas Status:", Text(gas_status, style=gas_color))
+    table.add_row("💨  Gas Status:", Text(gas_status, style=gas_color))
     
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
