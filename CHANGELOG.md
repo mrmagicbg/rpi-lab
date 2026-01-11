@@ -2,6 +2,26 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.0.11] - 2026-01-11
+**BME680 Pressure Reading Bugfix**
+
+### Fixed
+- **CRITICAL:** Pressure readings corrected from 4.33x too high to accurate values
+  - Root cause: bme680 library v2.0.0 pressure calculation bug
+  - Applied correction factor: `pressure = pressure_raw / 4.33`
+  - Readings now ~1013 hPa (correct) instead of ~4391 hPa (incorrect)
+  - Affects all display outputs: GUI, TUI, MQTT
+
+### Added
+- Diagnostic scripts for sensor troubleshooting:
+  - `sensors/test_sensor_readings.py` - comprehensive sensor value testing
+  - `sensors/check_chip_id.py` - chip identification (BME280 vs BME680 vs BME688)
+
+### Notes
+- If upgrading from v3.0.10 or earlier, pressure values will change significantly
+- Update any automations that rely on pressure thresholds
+- Normal sea-level pressure: ~1013 hPa (was incorrectly showing ~4391 hPa)
+
 ## [3.0.10] - 2026-01-11
 **BME690 Humidity Calibration & Gas Heater Control**
 

@@ -131,7 +131,12 @@ class BME690Sensor:
                 if self.sensor.get_sensor_data():
                     self.heat_stable = bool(getattr(self.sensor.data, "heat_stable", False))
                     temperature = float(self.sensor.data.temperature)
-                    pressure = float(self.sensor.data.pressure)
+                    
+                    # BUGFIX: bme680 library v2.0.0 has pressure calculation bug
+                    # Pressure reads 4.33x too high - apply correction factor
+                    pressure_raw = float(self.sensor.data.pressure)
+                    pressure = pressure_raw / 4.33
+                    
                     raw_humidity = float(self.sensor.data.humidity)
                     gas_resistance = float(getattr(self.sensor.data, "gas_resistance", 0.0))
 
