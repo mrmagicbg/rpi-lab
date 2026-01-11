@@ -61,11 +61,13 @@ declare -A SYSTEM_PACKAGES=(
 )
 
 declare -A PYTHON_PACKAGES=(
-  ["bme690"]="0.3.2"
-  ["smbus2"]="0.5.2"
+  ["bme680"]="2.0.0"
+  ["smbus2"]="0.6.0"
   ["evdev"]="1.9.2"
   ["rich"]="13.3.0"
   ["loguru"]="0.7.0"
+  ["RPi.GPIO"]="0.7.1"
+  ["paho-mqtt"]="1.6.1"
 )
 
 # Function to check if system package is installed

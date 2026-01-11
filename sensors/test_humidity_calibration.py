@@ -37,11 +37,12 @@ for i, config in enumerate(configs, 1):
             os.environ.pop(key, None)
     
     # Import/reload the sensor module with new env vars
-    if 'bme690' in sys.modules:
-        del sys.modules['bme690']
+    if 'sensors.bme690' in sys.modules:
+        del sys.modules['sensors.bme690']
     
     try:
-        from bme690 import BME690Sensor
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+        from sensors.bme690 import BME690Sensor
         
         sensor = BME690Sensor()
         if not sensor.available:
@@ -67,8 +68,8 @@ for i, config in enumerate(configs, 1):
         print(f"❌ Error: {e}")
     
     # Clean up
-    if 'bme690' in sys.modules:
-        del sys.modules['bme690']
+    if 'sensors.bme690' in sys.modules:
+        del sys.modules['sensors.bme690']
 
 print("\n" + "=" * 70)
 print("Test complete!")

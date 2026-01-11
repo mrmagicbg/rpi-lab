@@ -218,10 +218,10 @@ systemctl status rpi_gui.service --no-pager 2>/dev/null || warn "Service status 
 
 echo ""
 log "Testing venv and imports..."
-if "$VENV_DIR/bin/python" -c "import bme690; print('✓ bme690 library available')" 2>/dev/null; then
-  ok "bme690 library available"
+if "$VENV_DIR/bin/python" -c "import bme680; print('✓ bme680 library available')" 2>/dev/null; then
+  ok "bme680 library available"
 else
-  warn "bme690 library not found"
+  warn "bme680 library not found"
 fi
 
 if "$VENV_DIR/bin/python" -c "import tkinter; print('✓ tkinter available')" 2>/dev/null; then

@@ -299,10 +299,10 @@ verify_venv(){
 			ok "Virtual environment activated successfully"
 			
 			# Check key libraries
-			if python3 -c "import bme690" 2>/dev/null; then
-				ok "bme690 library available"
+			if python3 -c "import bme680" 2>/dev/null; then
+				ok "bme680 library available"
 			else
-				warn "bme690 library missing (will be installed)"
+				warn "bme680 library missing (will be installed)"
 			fi
 			
 			if python3 -c "import tkinter" 2>/dev/null; then
