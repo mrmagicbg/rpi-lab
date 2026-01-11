@@ -57,7 +57,6 @@ declare -A SYSTEM_PACKAGES=(
   ["i2c-tools"]="I2C utilities"
   ["git"]="Version control"
   ["curl"]="HTTP client (for debugging)"
-  ["libatlas-base-dev"]="BLAS/LAPACK (for numerical libs)"
 )
 
 declare -A PYTHON_PACKAGES=(
