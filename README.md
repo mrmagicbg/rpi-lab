@@ -4,6 +4,11 @@ Raspberry Pi monitoring system with BME690 sensor, touch GUI, SSH monitoring, an
 
 ## ⚠️ Important: BME680/688 Humidity Readings
 
+**Hardware Note:** Pimoroni BME690 breakout contains **BME688 chip** (Bosch's newer version of BME680).
+- Chip ID: 0x61 (BME688)
+- All specs and behavior identical to BME680
+- See [docs/BME680.pdf](docs/BME680.pdf) for official Bosch datasheet
+
 **DO NOT disable the gas heater** - it's required for proper sensor operation and accuracy.
 
 **If humidity readings seem low:**
