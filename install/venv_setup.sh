@@ -70,6 +70,12 @@ declare -A PYTHON_PACKAGES=(
   ["paho-mqtt"]="1.6.1"
 )
 
+# Map package names to their import names (for packages where they differ)
+declare -A IMPORT_NAMES=(
+  ["paho-mqtt"]="paho.mqtt.client"
+  ["RPi.GPIO"]="RPi.GPIO"
+)
+
 # Function to check if system package is installed
 is_system_package_installed() {
   dpkg -l | grep -q "^ii  $1 " && return 0 || return 1
@@ -77,7 +83,9 @@ is_system_package_installed() {
 
 # Function to check if Python package is installed
 is_python_package_installed() {
-  "$VENV_DIR/bin/python" -c "import $1" 2>/dev/null && return 0 || return 1
+  local pkg="$1"
+  local import_name="${IMPORT_NAMES[$pkg]:-$pkg}"
+  "$VENV_DIR/bin/python" -c "import ${import_name}" 2>/dev/null && return 0 || return 1
 }
 
 # Phase 1: Check and install system prerequisites
