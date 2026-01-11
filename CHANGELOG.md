@@ -13,6 +13,7 @@ Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCH
 - Humidity calibration: `final = (raw * scale + offset)` clamped to 0-100%RH
 - Enhanced logging for gas heater status and calibration application
 - Improved module docstring with environment variable documentation
+- Test script: `sensors/test_humidity_calibration.py` for finding optimal calibration
 
 ### Fixed
 - Humidity readings consistently lower than GUI/reference meters
@@ -24,11 +25,14 @@ Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCH
 - BME690 initialization now logs gas heater state (enabled/disabled)
 - Humidity calibration logged at INFO level during init, DEBUG during reads
 - Module docstring expanded with calibration usage examples
+- **MQTT Publisher:** Gas resistance now published in kΩ (was Ω) for better HA display
+- **MQTT Discovery:** Gas resistance unit changed to kΩ in auto-discovery config
 
 ### Notes
 - To match reference meter: set `BME690_ENABLE_GAS=0` and restart services
 - For fine-tuning: adjust `BME690_HUM_OFFSET` in small increments (e.g., +5, +10)
 - Set env vars in service files for persistence (see docs/SERVICE_MANAGEMENT.md)
+- Gas resistance now matches TUI display format (kΩ instead of Ω)
 
 ## [3.0.9] - 2026-01-09
 **MQTT Integration for Home Assistant - Complete Implementation**
