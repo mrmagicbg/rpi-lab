@@ -2,6 +2,19 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.0.13] - 2026-01-11
+**Deployment Script Improvements**
+
+### Fixed
+- Deployment script now installs and restarts **both** GUI and MQTT publisher services
+  - Previously only `rpi_gui.service` was restarted after deployment
+  - Now `mqtt_publisher.service` is also installed/restarted automatically
+  - Both services show status at deployment completion
+
+### Changed
+- Enhanced deployment status output to show both services
+- Both services now auto-start on boot after deployment
+
 ## [3.0.12] - 2026-01-11
 **Gas Heater Disabled by Default**
 

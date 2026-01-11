@@ -480,10 +480,20 @@ else
 	warn "RF installation script not found, skipping RF tools compilation"
 fi
 
-log "PHASE 11: Installing systemd service..."
-cp "$APP_DIR/gui/rpi_gui.service" "/etc/systemd/system/$SERVICE_NAME" || warn "Could not copy service file"
+log "PHASE 11: Installing systemd services..."
+cp "$APP_DIR/gui/rpi_gui.service" "/etc/systemd/system/$SERVICE_NAME" || warn "Could not copy GUI service file"
 chmod 644 "/etc/systemd/system/$SERVICE_NAME"
-ok "Service file installed"
+ok "GUI service file installed"
+
+# Install MQTT publisher service
+MQTT_SERVICE_NAME="mqtt_publisher.service"
+if [ -f "$APP_DIR/sensors/$MQTT_SERVICE_NAME" ]; then
+	cp "$APP_DIR/sensors/$MQTT_SERVICE_NAME" "/etc/systemd/system/$MQTT_SERVICE_NAME" || warn "Could not copy MQTT service file"
+	chmod 644 "/etc/systemd/system/$MQTT_SERVICE_NAME"
+	ok "MQTT publisher service file installed"
+else
+	warn "MQTT publisher service file not found at $APP_DIR/sensors/$MQTT_SERVICE_NAME"
+fi
 
 # Remove old TUI service if it exists
 if [ -f "/etc/systemd/system/rpi_tui.service" ]; then
@@ -494,11 +504,18 @@ if [ -f "/etc/systemd/system/rpi_tui.service" ]; then
 	ok "Old service removed"
 fi
 
-log "PHASE 12: Reloading systemd and starting GUI service..."
+log "PHASE 12: Reloading systemd and starting services..."
 systemctl daemon-reload
-systemctl enable --now $SERVICE_NAME || warn "Could not enable service"
-systemctl restart $SERVICE_NAME || warn "Could not restart service"
+systemctl enable --now $SERVICE_NAME || warn "Could not enable GUI service"
+systemctl restart $SERVICE_NAME || warn "Could not restart GUI service"
 ok "GUI service deployed and started"
+
+# Start MQTT publisher service if it exists
+if [ -f "/etc/systemd/system/$MQTT_SERVICE_NAME" ]; then
+	systemctl enable --now $MQTT_SERVICE_NAME || warn "Could not enable MQTT service"
+	systemctl restart $MQTT_SERVICE_NAME || warn "Could not restart MQTT service"
+	ok "MQTT publisher service deployed and started"
+fi
 
 log ""
 log "============================================================================"
@@ -506,16 +523,31 @@ log "  Deployment Complete"
 log "============================================================================"
 log ""
 log "Service Status:"
-systemctl status $SERVICE_NAME -l || warn "Service status check failed"
+systemctl status $SERVICE_NAME -l || warn "GUI service status check failed"
+
+if [ -f "/etc/systemd/system/$MQTT_SERVICE_NAME" ]; then
+	echo ""
+	systemctl status $MQTT_SERVICE_NAME -l || warn "MQTT service status check failed"
+fi
 
 log ""
 log "Recent Log Output:"
 journalctl -u $SERVICE_NAME -n 10 || true
 
+if [ -f "/etc/systemd/system/$MQTT_SERVICE_NAME" ]; then
+	echo ""
+	log "MQTT Publisher Logs:"
+	journalctl -u $MQTT_SERVICE_NAME -n 10 || true
+fi
+
 log ""
 ok "Deployment finished successfully"
-log "Service will auto-start on boot"
-log "To view logs: journalctl -u $SERVICE_NAME -f"
+log "Services will auto-start on boot"
+log "To view logs:"
+log "  GUI:  journalctl -u $SERVICE_NAME -f"
+if [ -f "/etc/systemd/system/$MQTT_SERVICE_NAME" ]; then
+	log "  MQTT: journalctl -u $MQTT_SERVICE_NAME -f"
+fi
 log ""
 
 # Clear backup file reference - deployment succeeded
