@@ -314,17 +314,63 @@ sudo systemctl restart mqtt_publisher.service
 
 ### Change MQTT Broker
 
+**Method 1: Using .env file (Recommended)**
+
+Create or edit `/opt/rpi-lab/.env`:
+```bash
+sudo nano /opt/rpi-lab/.env
+```
+
+Add:
+```bash
+MQTT_BROKER=your-ha-hostname-or-ip
+MQTT_PORT=1883
+MQTT_USER=mqtt_user
+MQTT_PASSWORD=your_password
+MQTT_TOPIC_PREFIX=homeassistant
+DEVICE_NAME=rpi_lab
+UPDATE_INTERVAL=300
+```
+
+Restart:
+```bash
+sudo systemctl restart mqtt_publisher.service rpi_gui.service
+```
+
+**Method 2: Using service file**
+
 Edit service file and update:
+```bash
+sudo systemctl edit mqtt_publisher.service --full
+```
+
+Update environment variables:
 ```ini
 Environment="MQTT_BROKER=new-broker.com"
 Environment="MQTT_PORT=1883"
+Environment="MQTT_USER=mqtt_user"
+Environment="MQTT_PASSWORD=your_password"
 ```
 
-Restart service.
+Restart:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart mqtt_publisher.service
+```
 
 ### Use Different Device Name
 
-Edit service file:
+**Using .env file:**
+```bash
+sudo nano /opt/rpi-lab/.env
+```
+
+Add:
+```bash
+DEVICE_NAME=bedroom_pi
+```
+
+**Using service file:**
 ```ini
 Environment="DEVICE_NAME=bedroom_pi"
 ```
