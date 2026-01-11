@@ -2,6 +2,34 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.0.10] - 2026-01-11
+**BME690 Humidity Calibration & Gas Heater Control**
+
+### Added
+- Environment variable controls for BME690 sensor accuracy tuning:
+  - `BME690_ENABLE_GAS=0` : Disable gas heater to improve humidity accuracy
+  - `BME690_HUM_SCALE=1.0` : Humidity scaling factor (multiplicative)
+  - `BME690_HUM_OFFSET=0.0` : Humidity offset in %RH (additive)
+- Humidity calibration: `final = (raw * scale + offset)` clamped to 0-100%RH
+- Enhanced logging for gas heater status and calibration application
+- Improved module docstring with environment variable documentation
+
+### Fixed
+- Humidity readings consistently lower than GUI/reference meters
+  - Root cause: BME680/690 gas heater warms sensor, reducing humidity readings
+  - Solution: Optional heater disable or calibration compensation
+- TUI and MQTT now reflect same corrected humidity values as GUI
+
+### Changed
+- BME690 initialization now logs gas heater state (enabled/disabled)
+- Humidity calibration logged at INFO level during init, DEBUG during reads
+- Module docstring expanded with calibration usage examples
+
+### Notes
+- To match reference meter: set `BME690_ENABLE_GAS=0` and restart services
+- For fine-tuning: adjust `BME690_HUM_OFFSET` in small increments (e.g., +5, +10)
+- Set env vars in service files for persistence (see docs/SERVICE_MANAGEMENT.md)
+
 ## [3.0.9] - 2026-01-09
 **MQTT Integration for Home Assistant - Complete Implementation**
 

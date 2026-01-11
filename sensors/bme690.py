@@ -4,8 +4,17 @@ BME690 Environmental Sensor Module
 Reads temperature (°C), humidity (%RH), pressure (hPa) and gas resistance (Ohms)
 from Pimoroni BME690 breakout over I2C.
 
-Supports dry-run mode for development without hardware by setting the
-environment variable BME690_DRY_RUN=1.
+Environment Variables:
+  BME690_DRY_RUN=1        : Enable dry-run mode (simulated values, no hardware)
+  BME690_ENABLE_GAS=0     : Disable gas heater (improves humidity accuracy)
+  BME690_HUM_SCALE=1.0    : Humidity scaling factor (default: 1.0)
+  BME690_HUM_OFFSET=0.0   : Humidity offset in %RH (default: 0.0)
+
+Humidity Calibration:
+  The gas heater on BME680/690 can cause lower humidity readings. If readings
+  are consistently below a reference meter, disable the heater (BME690_ENABLE_GAS=0)
+  or apply calibration: final_humidity = raw * BME690_HUM_SCALE + BME690_HUM_OFFSET
+  (result is clamped to 0-100%RH).
 """
 
 import os
@@ -16,6 +25,11 @@ from typing import Optional, Tuple, Dict, Any
 logger = logging.getLogger(__name__)
 
 DRY_RUN = os.getenv("BME690_DRY_RUN", "0") == "1"
+# Optional env controls for calibration/tuning
+BME690_ENABLE_GAS = os.getenv("BME690_ENABLE_GAS", "1") == "1"
+# Humidity calibration: final_h = raw_h * SCALE + OFFSET (clamped 0..100)
+HUM_SCALE = float(os.getenv("BME690_HUM_SCALE", "1.0"))
+HUM_OFFSET = float(os.getenv("BME690_HUM_OFFSET", "0.0"))
 
 try:
     import bme680
@@ -66,14 +80,22 @@ class BME690Sensor:
             self.sensor.set_temperature_oversample(bme680.OS_8X)
             self.sensor.set_filter(bme680.FILTER_SIZE_3)
 
-            # Enable gas measurement and set heater profile
-            self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
-            self.sensor.set_gas_heater_temperature(320)
-            self.sensor.set_gas_heater_duration(150)
-            self.sensor.select_gas_heater_profile(0)
+            # Gas measurement / heater profile (can be disabled via env)
+            if BME690_ENABLE_GAS:
+                self.sensor.set_gas_status(bme680.ENABLE_GAS_MEAS)
+                self.sensor.set_gas_heater_temperature(320)
+                self.sensor.set_gas_heater_duration(150)
+                self.sensor.select_gas_heater_profile(0)
+                logger.info("BME690 gas heater enabled (320°C, 150ms)")
+            else:
+                # Disable gas heater to avoid lowering humidity readings
+                self.sensor.set_gas_status(bme680.DISABLE_GAS_MEAS)
+                logger.info("BME690 gas heater disabled (improves humidity accuracy)")
 
             self.available = True
             logger.info(f"BME690 initialized on I2C address 0x{self.i2c_addr:02X}")
+            if HUM_SCALE != 1.0 or HUM_OFFSET != 0.0:
+                logger.info(f"Humidity calibration active: scale={HUM_SCALE}, offset={HUM_OFFSET}%RH")
         except Exception as e:
             logger.error(f"Failed to initialize BME690: {e}")
             self.available = False
@@ -110,8 +132,15 @@ class BME690Sensor:
                     self.heat_stable = bool(getattr(self.sensor.data, "heat_stable", False))
                     temperature = float(self.sensor.data.temperature)
                     pressure = float(self.sensor.data.pressure)
-                    humidity = float(self.sensor.data.humidity)
+                    raw_humidity = float(self.sensor.data.humidity)
                     gas_resistance = float(getattr(self.sensor.data, "gas_resistance", 0.0))
+
+                    # Apply optional humidity calibration and clamp to 0..100
+                    humidity = max(0.0, min(100.0, raw_humidity * HUM_SCALE + HUM_OFFSET))
+                    
+                    # Log calibration application if active (debug level)
+                    if (HUM_SCALE != 1.0 or HUM_OFFSET != 0.0) and raw_humidity != humidity:
+                        logger.debug(f"Humidity calibrated: {raw_humidity:.1f}%RH → {humidity:.1f}%RH")
                     
                     # Success - log if it took retries
                     if attempt > 0:

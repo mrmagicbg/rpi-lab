@@ -122,6 +122,59 @@ Gas alert threshold: < 5kΩ (only "Gas Detected" level triggers beeping)
 
 Normal operation: > 60kΩ
 
+### Humidity Readings Too Low
+
+**Symptom:** BME690 humidity reads 10-20%RH lower than GUI or reference meters
+
+**Root Cause:** BME680/690 gas heater warms sensor and lowers humidity readings
+
+**Solutions:**
+
+1. **Disable gas heater** (recommended for accurate humidity):
+```bash
+# For GUI service
+sudo systemctl edit rpi_gui.service --full
+# Add under [Service]:
+Environment="BME690_ENABLE_GAS=0"
+
+# For MQTT publisher
+sudo systemctl edit mqtt_publisher.service --full
+# Add under [Service]:
+Environment="BME690_ENABLE_GAS=0"
+
+sudo systemctl daemon-reload
+sudo systemctl restart rpi_gui.service mqtt_publisher.service
+```
+
+2. **Apply humidity calibration** (if heater must stay on):
+```bash
+# Example: add 18%RH offset
+sudo systemctl edit rpi_gui.service --full
+# Add under [Service]:
+Environment="BME690_HUM_OFFSET=18.0"
+
+# Or apply scaling factor (e.g., 1.2x)
+Environment="BME690_HUM_SCALE=1.2"
+
+sudo systemctl daemon-reload
+sudo systemctl restart rpi_gui.service
+```
+
+3. **Test calibration values**:
+```bash
+# Run sensor test with env vars
+cd /opt/rpi-lab
+source .venv/bin/activate
+BME690_ENABLE_GAS=0 python3 sensors/bme690.py
+# Compare output to reference meter
+
+# Try different offsets
+BME690_HUM_OFFSET=15.0 python3 sensors/bme690.py
+BME690_HUM_OFFSET=20.0 python3 sensors/bme690.py
+```
+
+**Note:** Humidity calibration applies to TUI, MQTT, and GUI simultaneously. Set env vars in all service files for consistency.
+
 ## Touch Issues
 
 ### Touch Not Responding
