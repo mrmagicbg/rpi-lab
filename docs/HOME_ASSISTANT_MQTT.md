@@ -448,6 +448,19 @@ nc -zv your-ha-url.com 1883
 3. **Verify discovery messages sent** (check Pi logs)
 4. **Restart HA** to force discovery refresh
 
+**After v3.0.10 Update (Gas Resistance Units Changed):**
+
+If upgrading from older version, gas resistance unit changed from Ω to kΩ:
+
+1. **Remove old entity** (Settings → Devices & Services → MQTT → RPI Lab BME690 → Delete gas resistance entity)
+2. **Restart MQTT publisher** to resend discovery:
+```bash
+sudo systemctl restart mqtt_publisher.service
+```
+3. **Force rediscovery** in HA (Settings → MQTT → Configure → Reload)
+4. **Update automations** if they reference gas resistance thresholds:
+   - Old: `below: 5000` (Ω) → New: `below: 5` (kΩ)
+
 ### Old Data or No Updates
 
 1. **Check service is running:**
@@ -490,13 +503,15 @@ automation:
 
 ### Gas Detection Alert
 
+**Note:** As of v3.0.10, gas resistance is published in kΩ (not Ω).
+
 ```yaml
 automation:
   - alias: "RPI Lab Gas Detected"
     trigger:
       platform: numeric_state
       entity_id: sensor.rpi_lab_gas_resistance
-      below: 5000
+      below: 5  # kΩ (5000 Ω)
     action:
       service: notify.persistent_notification
       data:
