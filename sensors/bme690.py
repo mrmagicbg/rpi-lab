@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 
 DRY_RUN = os.getenv("BME690_DRY_RUN", "0") == "1"
 # Optional env controls for calibration/tuning
-BME690_ENABLE_GAS = os.getenv("BME690_ENABLE_GAS", "1") == "1"
+BME690_ENABLE_GAS = os.getenv("BME690_ENABLE_GAS", "0") == "1"  # Disabled by default for humidity accuracy
 # Humidity calibration: final_h = raw_h * SCALE + OFFSET (clamped 0..100)
 HUM_SCALE = float(os.getenv("BME690_HUM_SCALE", "1.0"))
 HUM_OFFSET = float(os.getenv("BME690_HUM_OFFSET", "0.0"))

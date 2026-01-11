@@ -2,6 +2,21 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.0.12] - 2026-01-11
+**Gas Heater Disabled by Default**
+
+### Changed
+- **BME690_ENABLE_GAS now defaults to 0 (disabled)** for improved humidity accuracy
+  - Gas heater warming effect causes 10-30%RH underreporting
+  - Gas readings no longer available by default
+  - To re-enable: set `BME690_ENABLE_GAS=1` in environment or .env file
+  - Improves humidity accuracy from ~37%RH to actual ambient levels
+
+### Notes
+- If you need gas/air quality readings, explicitly set `BME690_ENABLE_GAS=1`
+- This change prioritizes humidity accuracy over gas sensing
+- After upgrading, expect humidity readings to increase by 10-30%RH
+
 ## [3.0.11] - 2026-01-11
 **BME690/BME688 Pressure Reading Bugfix**
 
