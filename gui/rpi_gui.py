@@ -173,7 +173,7 @@ class RPILauncherGUI:
         
         # Info display area (network + sensor in horizontal layout)
         info_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        info_frame.pack(fill='x', padx=10, pady=5)
+        info_frame.pack(fill='both', expand=True, padx=10, pady=5)
         
         # Network information (left side)
         self.network_frame = tk.Frame(info_frame, bg='#2d2d2d', relief='raised', bd=3)
@@ -182,10 +182,10 @@ class RPILauncherGUI:
         net_title = tk.Label(
             self.network_frame,
             text="🌐 Network Info",
-            font=('Arial', 12, 'bold'),
+            font=('Arial', 14, 'bold'),
             fg='#00ff88',
             bg='#2d2d2d',
-            pady=5
+            pady=8
         )
         net_title.pack()
         
@@ -193,7 +193,7 @@ class RPILauncherGUI:
         self.net_ip_label = tk.Label(
             self.network_frame,
             text="IP: Loading...",
-            font=('Arial', 10),
+            font=('Arial', 12),
             fg='#ffffff',
             bg='#2d2d2d',
             anchor='w',
@@ -204,7 +204,7 @@ class RPILauncherGUI:
         self.net_gateway_label = tk.Label(
             self.network_frame,
             text="GW: Loading...",
-            font=('Arial', 10),
+            font=('Arial', 12),
             fg='#ffffff',
             bg='#2d2d2d',
             anchor='w',
@@ -215,12 +215,12 @@ class RPILauncherGUI:
         self.net_dns_label = tk.Label(
             self.network_frame,
             text="DNS: Loading...",
-            font=('Arial', 10),
+            font=('Arial', 12),
             fg='#ffffff',
             bg='#2d2d2d',
             anchor='w',
             justify='left',
-            wraplength=300
+            wraplength=600
         )
         self.net_dns_label.pack(padx=10, anchor='w', pady=(0, 5))
         
@@ -231,10 +231,10 @@ class RPILauncherGUI:
         sensor_title = tk.Label(
             self.sensor_frame,
             text="🌡️ BME690 Sensor (I2C)",
-            font=('Arial', 12, 'bold'),
+            font=('Arial', 14, 'bold'),
             fg='#00ff88',
             bg='#2d2d2d',
-            pady=5
+            pady=8
         )
         sensor_title.pack()
         
@@ -249,7 +249,7 @@ class RPILauncherGUI:
         tk.Label(
             temp_container,
             text="Temp:",
-            font=('Arial', 10, 'bold'),
+            font=('Arial', 12, 'bold'),
             fg='#ffffff',
             bg='#2d2d2d'
         ).pack(side='left')
@@ -257,7 +257,7 @@ class RPILauncherGUI:
         self.temp_label = tk.Label(
             temp_container,
             text="--°C",
-            font=('Arial', 14, 'bold'),
+            font=('Arial', 18, 'bold'),
             fg='#ff6b6b',
             bg='#2d2d2d'
         )
@@ -270,7 +270,7 @@ class RPILauncherGUI:
         tk.Label(
             humid_container,
             text="Humid:",
-            font=('Arial', 10, 'bold'),
+            font=('Arial', 12, 'bold'),
             fg='#ffffff',
             bg='#2d2d2d'
         ).pack(side='left')
@@ -278,7 +278,7 @@ class RPILauncherGUI:
         self.humid_label = tk.Label(
             humid_container,
             text="--%",
-            font=('Arial', 14, 'bold'),
+            font=('Arial', 18, 'bold'),
             fg='#4ecdc4',
             bg='#2d2d2d'
         )
@@ -291,7 +291,7 @@ class RPILauncherGUI:
         tk.Label(
             press_container,
             text="Press:",
-            font=('Arial', 10, 'bold'),
+            font=('Arial', 12, 'bold'),
             fg='#ffffff',
             bg='#2d2d2d'
         ).pack(side='left')
@@ -299,7 +299,7 @@ class RPILauncherGUI:
         self.press_label = tk.Label(
             press_container,
             text="-- hPa",
-            font=('Arial', 14, 'bold'),
+            font=('Arial', 18, 'bold'),
             fg='#9aa0ff',
             bg='#2d2d2d'
         )
@@ -312,7 +312,7 @@ class RPILauncherGUI:
         tk.Label(
             gas_container,
             text="Gas:",
-            font=('Arial', 10, 'bold'),
+            font=('Arial', 12, 'bold'),
             fg='#ffffff',
             bg='#2d2d2d'
         ).pack(side='left')
@@ -320,7 +320,7 @@ class RPILauncherGUI:
         self.gas_label = tk.Label(
             gas_container,
             text="-- Ω",
-            font=('Arial', 12, 'bold'),
+            font=('Arial', 16, 'bold'),
             fg='#ffae00',
             bg='#2d2d2d'
         )
@@ -330,7 +330,7 @@ class RPILauncherGUI:
         self.sensor_status = tk.Label(
             self.sensor_frame,
             text="Initializing sensor...",
-            font=('Arial', 10),
+            font=('Arial', 12),
             fg='#888888',
             bg='#2d2d2d',
             pady=2
@@ -341,77 +341,73 @@ class RPILauncherGUI:
         self.gas_heater_status = tk.Label(
             self.sensor_frame,
             text="",
-            font=('Arial', 10, 'bold'),
+            font=('Arial', 12, 'bold'),
             fg='#888888',
             bg='#2d2d2d',
             pady=2
         )
         self.gas_heater_status.pack()
         
+        # Calibration status indicator
+        cal_status_parts = []
+        from sensors.bme690 import HUM_OFFSET, HUM_SCALE, BME690_ENABLE_GAS, TEMP_OFFSET
+        if not BME690_ENABLE_GAS:
+            cal_status_parts.append("Heater: OFF")
+        if HUM_OFFSET != 0.0 or HUM_SCALE != 1.0:
+            cal_status_parts.append(f"Hum Cal: {HUM_SCALE:.2f}x+{HUM_OFFSET:.1f}")
+        if TEMP_OFFSET != 0.0:
+            cal_status_parts.append(f"Temp Cal: {TEMP_OFFSET:+.1f}°C")
+        
+        if cal_status_parts:
+            self.cal_status = tk.Label(
+                self.sensor_frame,
+                text=" • ".join(cal_status_parts),
+                font=('Arial', 9),
+                fg='#ffaa00',
+                bg='#2d2d2d',
+                pady=2
+            )
+            self.cal_status.pack()
+        
         # Button container frame
         button_frame = tk.Frame(main_frame, bg='#1e1e1e')
-        button_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        button_frame.pack(fill='x', expand=False, padx=10, pady=5)
+        button_frame.grid_columnconfigure((0, 1), weight=1, uniform='btns')
         
         # UNIFORM touch buttons - all same size
         button_config = {
             'font': ('Arial', 16, 'bold'),
-            'width': 22,
-            'height': 1,
+            'width': 16,
+            'height': 2,
             'relief': 'raised',
             'bd': 4,
             'fg': 'white'
         }
-        
-        # Menu buttons - all uniform size
-        btn_rf = tk.Button(
-            button_frame,
-            text="📡 TPMS Monitor",
-            command=self.run_rf_script,
-            bg='#2d89ef',
-            activebackground='#1e5fa8',
-            **button_config
-        )
-        btn_rf.pack(pady=3, fill='x')
-        
-        btn_test_beep = tk.Button(
-            button_frame,
-            text="🔊 Test Speaker",
-            command=self.test_beep,
-            bg='#f7630c',
-            activebackground='#c4500a',
-            **button_config
-        )
-        btn_test_beep.pack(pady=3, fill='x')
-        
-        btn_reboot = tk.Button(
-            button_frame,
-            text="🔄 Reboot System",
-            command=self.reboot_pi,
-            bg='#e81123',
-            activebackground='#a50011',
-            **button_config
-        )
-        btn_reboot.pack(pady=3, fill='x')
-        
-        btn_shell = tk.Button(
-            button_frame,
-            text="💻 Open Terminal",
-            command=self.open_shell,
-            bg='#00a300',
-            activebackground='#007000',
-            **button_config
-        )
-        btn_shell.pack(pady=3, fill='x')
-        
-        btn_exit = tk.Button(
-            button_frame,
-            text="❌ Exit to Desktop",
-            command=self.exit_app,
-            bg='#555555',
-            activebackground='#333333',
-            **button_config
-        )
-        btn_exit.pack(pady=3, fill='x')
+
+        buttons = [
+            ("📡 TPMS Monitor", self.run_rf_script, '#2d89ef', '#1e5fa8'),
+            ("🔊 Test Speaker", self.test_beep, '#f7630c', '#c4500a'),
+            ("🔄 Reboot System", self.reboot_pi, '#e81123', '#a50011'),
+            ("💻 Open Terminal", self.open_shell, '#00a300', '#007000'),
+            ("❌ Exit to Desktop", self.exit_app, '#555555', '#333333'),
+        ]
+
+        for idx, (label, cmd, bg, active_bg) in enumerate(buttons):
+            row, col = divmod(idx, 2)
+            btn = tk.Button(
+                button_frame,
+                text=label,
+                command=cmd,
+                bg=bg,
+                activebackground=active_bg,
+                **button_config
+            )
+            btn.grid(row=row, column=col, padx=6, pady=6, sticky='nsew')
+
+        # Allow rows to expand evenly for the grid layout
+        total_rows = (len(buttons) + 1) // 2
+        for r in range(total_rows):
+            button_frame.grid_rowconfigure(r, weight=1)
         
         # Footer with instructions
         footer = tk.Label(

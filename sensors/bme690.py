@@ -4,7 +4,11 @@ BME690 Environmental Sensor Module
 Reads temperature (°C), humidity (%RH), pressure (hPa) and gas resistance (Ohms)
 from Pimoroni BME690 breakout over I2C.
 
-Environment Variables:
+Configuration:
+  Edit config/sensor.conf to set calibration values and heater control.
+  Config file takes precedence over environment variables.
+
+Environment Variables (fallback if config file not found):
   BME690_DRY_RUN=1        : Enable dry-run mode (simulated values, no hardware)
   BME690_ENABLE_GAS=0     : Disable gas heater (improves humidity accuracy)
   BME690_HUM_SCALE=1.0    : Humidity scaling factor (default: 1.0)
@@ -12,24 +16,79 @@ Environment Variables:
 
 Humidity Calibration:
   The gas heater on BME690/BME688 can cause lower humidity readings. If readings
-  are consistently below a reference meter, disable the heater (BME690_ENABLE_GAS=0)
-  or apply calibration: final_humidity = raw * BME690_HUM_SCALE + BME690_HUM_OFFSET
-  (result is clamped to 0-100%RH).
+  are consistently below a reference meter, disable the heater or apply calibration.
+  See config/sensor.conf for details.
 """
 
 import os
 import time
 import logging
+import configparser
 from typing import Optional, Tuple, Dict, Any
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-DRY_RUN = os.getenv("BME690_DRY_RUN", "0") == "1"
-# Optional env controls for calibration/tuning
-BME690_ENABLE_GAS = os.getenv("BME690_ENABLE_GAS", "1") == "1"  # Enabled by default (needed for accuracy)
-# Humidity calibration: final_h = raw_h * SCALE + OFFSET (clamped 0..100)
-HUM_SCALE = float(os.getenv("BME690_HUM_SCALE", "1.0"))
-HUM_OFFSET = float(os.getenv("BME690_HUM_OFFSET", "0.0"))
+# Config file paths (search in order)
+CONFIG_PATHS = [
+    "/opt/rpi-lab/config/sensor.conf",
+    os.path.join(os.path.dirname(__file__), "..", "config", "sensor.conf"),
+    os.path.expanduser("~/.config/rpi-lab/sensor.conf"),
+]
+
+def load_sensor_config() -> Dict[str, Any]:
+    """Load sensor configuration from file or environment variables."""
+    config = {
+        'dry_run': False,
+        'enable_gas': True,
+        'humidity_scale': 1.0,
+        'humidity_offset': 0.0,
+        'temperature_offset': 0.0,
+        'pressure_correction': 4.33,
+    }
+    
+    # Try to load from config file
+    config_loaded = False
+    for config_path in CONFIG_PATHS:
+        if os.path.exists(config_path):
+            try:
+                parser = configparser.ConfigParser()
+                parser.read(config_path)
+                
+                if 'BME690' in parser:
+                    bme_section = parser['BME690']
+                    config['dry_run'] = bme_section.getboolean('dry_run', False)
+                    config['enable_gas'] = bme_section.getboolean('enable_gas', True)
+                    config['humidity_scale'] = bme_section.getfloat('humidity_scale', 1.0)
+                    config['humidity_offset'] = bme_section.getfloat('humidity_offset', 0.0)
+                    config['temperature_offset'] = bme_section.getfloat('temperature_offset', 0.0)
+                    config['pressure_correction'] = bme_section.getfloat('pressure_correction', 4.33)
+                    
+                    logger.info(f"Loaded sensor config from {config_path}")
+                    config_loaded = True
+                    break
+            except Exception as e:
+                logger.warning(f"Failed to load config from {config_path}: {e}")
+    
+    # Fallback to environment variables
+    if not config_loaded:
+        config['dry_run'] = os.getenv("BME690_DRY_RUN", "0") == "1"
+        config['enable_gas'] = os.getenv("BME690_ENABLE_GAS", "1") == "1"
+        config['humidity_scale'] = float(os.getenv("BME690_HUM_SCALE", "1.0"))
+        config['humidity_offset'] = float(os.getenv("BME690_HUM_OFFSET", "0.0"))
+        config['temperature_offset'] = float(os.getenv("BME690_TEMP_OFFSET", "0.0"))
+        logger.info("Using sensor config from environment variables")
+    
+    return config
+
+# Load configuration
+SENSOR_CONFIG = load_sensor_config()
+DRY_RUN = SENSOR_CONFIG['dry_run']
+BME690_ENABLE_GAS = SENSOR_CONFIG['enable_gas']
+HUM_SCALE = SENSOR_CONFIG['humidity_scale']
+HUM_OFFSET = SENSOR_CONFIG['humidity_offset']
+TEMP_OFFSET = SENSOR_CONFIG['temperature_offset']
+PRESSURE_CORRECTION = SENSOR_CONFIG['pressure_correction']
 
 try:
     import bme680
@@ -95,7 +154,11 @@ class BME690Sensor:
             self.available = True
             logger.info(f"BME690 initialized on I2C address 0x{self.i2c_addr:02X}")
             if HUM_SCALE != 1.0 or HUM_OFFSET != 0.0:
-                logger.info(f"Humidity calibration active: scale={HUM_SCALE}, offset={HUM_OFFSET}%RH")
+                logger.info(f"Humidity calibration: scale={HUM_SCALE}, offset={HUM_OFFSET}%RH")
+            if TEMP_OFFSET != 0.0:
+                logger.info(f"Temperature calibration: offset={TEMP_OFFSET}°C")
+            if PRESSURE_CORRECTION != 4.33:
+                logger.info(f"Pressure correction: factor={PRESSURE_CORRECTION}")
         except Exception as e:
             logger.error(f"Failed to initialize BME690: {e}")
             self.available = False
@@ -130,12 +193,13 @@ class BME690Sensor:
             try:
                 if self.sensor.get_sensor_data():
                     self.heat_stable = bool(getattr(self.sensor.data, "heat_stable", False))
-                    temperature = float(self.sensor.data.temperature)
+                    raw_temperature = float(self.sensor.data.temperature)
+                    temperature = raw_temperature + TEMP_OFFSET
                     
                     # BUGFIX: bme680 library v2.0.0 with BME688 chip (BME690 breakout)
                     # Pressure reads 4.33x too high - apply correction factor
                     pressure_raw = float(self.sensor.data.pressure)
-                    pressure = pressure_raw / 4.33
+                    pressure = pressure_raw / PRESSURE_CORRECTION
                     
                     raw_humidity = float(self.sensor.data.humidity)
                     gas_resistance = float(getattr(self.sensor.data, "gas_resistance", 0.0))
@@ -146,6 +210,8 @@ class BME690Sensor:
                     # Log calibration application if active (debug level)
                     if (HUM_SCALE != 1.0 or HUM_OFFSET != 0.0) and raw_humidity != humidity:
                         logger.debug(f"Humidity calibrated: {raw_humidity:.1f}%RH → {humidity:.1f}%RH")
+                    if TEMP_OFFSET != 0.0:
+                        logger.debug(f"Temperature calibrated: {raw_temperature:.1f}°C → {temperature:.1f}°C")
                     
                     # Success - log if it took retries
                     if attempt > 0:
