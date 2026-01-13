@@ -4,6 +4,10 @@ MQTT Publisher for BME690 Sensor Data to Home Assistant
 
 Publishes temperature, humidity, pressure, and gas resistance data
 to Home Assistant via MQTT with auto-discovery support.
+
+Configuration:
+  Edit config/sensor.conf [MQTT] section for broker settings.
+  Environment variables used as fallback if config not found.
 """
 
 import os
@@ -12,6 +16,7 @@ import time
 import json
 import logging
 import signal
+import configparser
 from datetime import datetime
 
 try:
@@ -24,14 +29,58 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from sensors.bme690 import BME690Sensor
 
-# Configuration from environment or defaults
-MQTT_BROKER = os.getenv('MQTT_BROKER', 'homeassistant.local')
-MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))
-MQTT_USER = os.getenv('MQTT_USER', '')
-MQTT_PASSWORD = os.getenv('MQTT_PASSWORD', '')
-MQTT_TOPIC_PREFIX = os.getenv('MQTT_TOPIC_PREFIX', 'homeassistant')
-DEVICE_NAME = os.getenv('DEVICE_NAME', 'rpi_lab')
-UPDATE_INTERVAL = int(os.getenv('UPDATE_INTERVAL', '60'))
+# Config file paths (search in order)
+CONFIG_PATHS = [
+    "/opt/rpi-lab/config/sensor.conf",
+    os.path.join(os.path.dirname(__file__), "..", "config", "sensor.conf"),
+    os.path.expanduser("~/.config/rpi-lab/sensor.conf"),
+]
+
+def load_mqtt_config():
+    """Load MQTT configuration from file or environment variables."""
+    config = {
+        'broker': 'homeassistant.local',
+        'port': 1883,
+        'username': '',
+        'password': '',
+        'topic_prefix': 'homeassistant',
+        'device_name': 'rpi_lab',
+        'update_interval': 60,
+    }
+    
+    # Try to load from config file
+    for config_path in CONFIG_PATHS:
+        if os.path.exists(config_path):
+            try:
+                parser = configparser.ConfigParser()
+                parser.read(config_path)
+                
+                if 'MQTT' in parser:
+                    mqtt_section = parser['MQTT']
+                    config['broker'] = mqtt_section.get('broker', config['broker'])
+                    config['port'] = mqtt_section.getint('port', config['port'])
+                    config['username'] = mqtt_section.get('username', config['username'])
+                    config['password'] = mqtt_section.get('password', config['password'])
+                    config['topic_prefix'] = mqtt_section.get('topic_prefix', config['topic_prefix'])
+                    config['device_name'] = mqtt_section.get('device_name', config['device_name'])
+                    config['update_interval'] = mqtt_section.getint('update_interval', config['update_interval'])
+                    
+                    logger.info(f"Loaded MQTT config from {config_path}")
+                    return config
+            except Exception as e:
+                logger.warning(f"Failed to load MQTT config from {config_path}: {e}")
+    
+    # Fallback to environment variables
+    config['broker'] = os.getenv('MQTT_BROKER', config['broker'])
+    config['port'] = int(os.getenv('MQTT_PORT', str(config['port'])))
+    config['username'] = os.getenv('MQTT_USER', config['username'])
+    config['password'] = os.getenv('MQTT_PASSWORD', config['password'])
+    config['topic_prefix'] = os.getenv('MQTT_TOPIC_PREFIX', config['topic_prefix'])
+    config['device_name'] = os.getenv('DEVICE_NAME', config['device_name'])
+    config['update_interval'] = int(os.getenv('UPDATE_INTERVAL', str(config['update_interval'])))
+    
+    logger.info("Using MQTT config from environment variables")
+    return config
 
 # Logging setup
 logging.basicConfig(
@@ -39,6 +88,16 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger('mqtt_publisher')
+
+# Load MQTT configuration
+MQTT_CONFIG = load_mqtt_config()
+MQTT_BROKER = MQTT_CONFIG['broker']
+MQTT_PORT = MQTT_CONFIG['port']
+MQTT_USER = MQTT_CONFIG['username']
+MQTT_PASSWORD = MQTT_CONFIG['password']
+MQTT_TOPIC_PREFIX = MQTT_CONFIG['topic_prefix']
+DEVICE_NAME = MQTT_CONFIG['device_name']
+UPDATE_INTERVAL = MQTT_CONFIG['update_interval']
 
 
 class BME690Publisher:

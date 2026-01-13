@@ -13,19 +13,8 @@ RestartSec=10
 StartLimitInterval=300
 StartLimitBurst=5
 
-# Load configuration from .env file (preferred method)
-# Create /opt/rpi-lab/.env with your MQTT settings
-# See docs/HOME_ASSISTANT_MQTT.md for configuration guide
-EnvironmentFile=-/opt/rpi-lab/.env
-
-# MQTT Configuration - defaults (override in .env file)
-Environment="MQTT_BROKER=homeassistant.local"
-Environment="MQTT_PORT=1883"
-Environment="MQTT_USER="
-Environment="MQTT_PASSWORD="
-Environment="MQTT_TOPIC_PREFIX=homeassistant"
-Environment="DEVICE_NAME=rpi_lab"
-Environment="UPDATE_INTERVAL=60"
+# Configuration file (edit /opt/rpi-lab/config/sensor.conf)
+# See docs/HOME_ASSISTANT_MQTT.md for setup guide
 
 # I2C access
 SupplementaryGroups=i2c
@@ -35,7 +24,5 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=mqtt_publisher
 
-[Install]
-WantedBy=multi-user.target
 [Install]
 WantedBy=multi-user.target
