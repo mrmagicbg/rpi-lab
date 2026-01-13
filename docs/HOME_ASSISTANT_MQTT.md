@@ -240,77 +240,21 @@ If you see `bme680 library not installed`, see [bme680 library not installed](#b
 
 #### 5. Verify in Home Assistant
 
-1. Go to **Settings** → **Devices & Services** → **MQTT**
-2. You should see "RPI Lab BME690" device
-3. Click on it to see 4 sensors:
-   - RPI Lab Temperature (°C)
-   - RPI Lab Humidity (%)
-   - RPI Lab Pressure (hPa)
-   - RPI Lab Gas Resistance (Ω)
-4. Verify that sensor values are updating every 5 minutes (300s interval)
-
-### Implementation Details
-
-#### Files Created/Modified
-
-**New files:**
-- `sensors/mqtt_publisher.py` - MQTT publisher with auto-discovery and error handling
-- `sensors/mqtt_publisher.service` - Systemd service file for MQTT publisher
-- `install/install_mqtt.sh` - Interactive installation script
-- `docs/HOME_ASSISTANT_MQTT.md` - This guide
-
-**Modified files:**
-- `requirements.txt` - Added `paho-mqtt==1.6.1` and `bme680==2.0.0`
-- `sensors/bme690.py` - Updated import from `bme690` to `bme680`
-- `deploy/deploy.sh` - Fixed prerequisite checking (dpkg-query)
-
-#### MQTT Publishing Details
-
-**Auto-Discovery Topics:**
-```
-homeassistant/sensor/{device_name}_temperature/config
-homeassistant/sensor/{device_name}_humidity/config
-homeassistant/sensor/{device_name}_pressure/config
-homeassistant/sensor/{device_name}_gas_resistance/config
+# View logs
+sudo journalctl -u mqtt_publisher.service -f
 ```
 
-**State Topics:**
+**Expected output:**
 ```
-homeassistant/sensor/{device_name}/temperature/state
-homeassistant/sensor/{device_name}/humidity/state
-homeassistant/sensor/{device_name}/pressure/state
-homeassistant/sensor/{device_name}/gas_resistance/state
-```
-
-**State Payload Format:**
-```json
-{
-  "value": 23.5,
-  "timestamp": "2026-01-09T09:39:05.763456"
-}
+Connected to MQTT broker at your-ha-external-url.com:1883
+Published discovery config for temperature
+Published discovery config for humidity
+Published discovery config for pressure
+Published discovery config for gas_resistance
+Published: T=23.5°C, H=45.2%, P=1013.2hPa, G=125430Ω
 ```
 
-#### Device Information
-
-Advertised to Home Assistant:
-```json
-{
-  "identifiers": ["rpi_lab_bme690"],
-  "name": "RPI Lab BME690",
-  "model": "BME690",
-  "manufacturer": "Bosch",
-  "sw_version": "1.0.0"
-}
-```
-
-#### Service Behavior
-
-- **Restart Policy:** `always` with 10s delay
-- **Start Limit:** 5 restarts per 300 seconds
-- **I2C Access:** Runs as `mrmagic` user with `i2c` group access
-- **Graceful Shutdown:** Handles SIGTERM/SIGINT signals from systemd
-- **Reconnection:** Exponential backoff (5→10→20→40→80 seconds)
-- **Log Destination:** Journal (view with `journalctl -u mqtt_publisher.service`)
+### Part 3: Verify in Home Assistant
 
 1. Go to **Settings** → **Devices & Services** → **MQTT**
 2. You should see "RPI Lab BME690" device
