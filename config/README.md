@@ -47,6 +47,41 @@ The system searches for config files in this order:
 
 See comments in `sensor.conf` for detailed parameter descriptions.
 
+### MQTT Configuration
+
+All MQTT settings live under the `[MQTT]` section:
+```ini
+[MQTT]
+broker = homeassistant.local
+port = 1883
+username =
+password =
+topic_prefix = homeassistant
+device_name = rpi_lab
+update_interval = 60
+```
+
+Edit the production config at `/opt/rpi-lab/config/sensor.conf` and restart the service:
+```bash
+sudo systemctl restart mqtt_publisher.service
+```
+
+### GUI Thresholds
+
+GUI alert thresholds live under the `[GUI]` section:
+```ini
+[GUI]
+temp_min = 0.0
+temp_max = 30.0
+humidity_min = 25.0
+humidity_max = 80.0
+gas_threshold = 5000
+gas_alert_interval = 15
+hourly_alert_interval = 3600
+```
+
+These thresholds are used by the touchscreen GUI for visual and audio alerts.
+
 ### Verification
 
 Check logs for calibration status:

@@ -1,6 +1,6 @@
 # Service Management
 
-Systemd service management for RPI Lab GUI.
+Systemd service management for RPI Lab GUI and MQTT publisher.
 
 ## Service File
 
@@ -53,6 +53,40 @@ sudo journalctl -u rpi_gui.service --since "1 hour ago"
 # After editing service file
 sudo systemctl daemon-reload
 sudo systemctl restart rpi_gui.service
+```
+
+## MQTT Publisher Service
+
+Location: `/etc/systemd/system/mqtt_publisher.service`
+
+Configuration:
+- Runs in `/opt/rpi-lab` with venv Python
+- Auto-restart on failure
+- Loads MQTT and device settings from `config/sensor.conf` `[MQTT]`
+
+### Common Commands
+```bash
+sudo systemctl status mqtt_publisher.service
+sudo systemctl restart mqtt_publisher.service
+sudo journalctl -u mqtt_publisher.service -f
+```
+
+### Change Settings
+Edit `/opt/rpi-lab/config/sensor.conf`:
+```ini
+[MQTT]
+broker = homeassistant.local
+port = 1883
+username =
+password =
+topic_prefix = homeassistant
+device_name = rpi_lab
+update_interval = 60
+```
+
+Apply changes:
+```bash
+sudo systemctl restart mqtt_publisher.service
 ```
 
 ## Manual GUI Launch

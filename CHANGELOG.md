@@ -2,6 +2,36 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.1.0] - 2026-01-13
+**Unified Config File for MQTT, GUI Thresholds; Installer Update**
+
+### Changed
+- Migrated all MQTT configuration to unified config file: `config/sensor.conf` `[MQTT]` section
+- `sensors/mqtt_publisher.py` now loads MQTT settings from config file (with environment fallback)
+- Cleaned `sensors/mqtt_publisher.service`: removed `EnvironmentFile` and per-variable `Environment=` lines
+- Installer updated: `install/install_mqtt.sh` now writes MQTT settings to `config/sensor.conf` and installs/starts the service
+
+### Added
+- Extended `config/sensor.conf` with `[GUI]` alert thresholds (temperature, humidity, gas, intervals)
+- Documentation updates for unified config system (examples and restart instructions)
+
+### Removed
+- `.env`-based configuration for MQTT (replaced by `config/sensor.conf`)
+- Service-level environment edits for routine configuration changes
+
+### Documentation
+- Updated [HOME_ASSISTANT_MQTT.md](docs/HOME_ASSISTANT_MQTT.md):
+  - Replaced `.env` and service edits with `config/sensor.conf` instructions
+  - Updated interactive setup to use `install/install_mqtt.sh`
+  - Clarified how to change `update_interval`, broker, device name, and `topic_prefix` via config
+- Enhanced [config/README.md](config/README.md) with `[MQTT]` and `[GUI]` sections
+- Updated [README.md](README.md) common commands and version/date
+
+### Notes
+- Production config location: `/opt/rpi-lab/config/sensor.conf`
+- After changes, restart: `sudo systemctl restart mqtt_publisher.service`
+
+
 ## [3.0.15] - 2026-01-11
 **MQTT Configuration System with .env Support**
 

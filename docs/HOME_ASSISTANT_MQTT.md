@@ -159,13 +159,13 @@ sudo /opt/rpi-lab/.venv/bin/pip install bme680==2.0.0 paho-mqtt==1.6.1
 
 **Option A: Interactive Configuration (Recommended)**
 
-Run the configuration tool:
+Run the installer to configure MQTT into the unified config file:
 ```bash
 cd /opt/rpi-lab
-sudo bash install/configure_mqtt.sh
+sudo bash install/install_mqtt.sh
 ```
 
-**Prompts:**
+The script will prompt you for:
 ```
 MQTT Broker hostname/IP: ha.mrmagic.synology.me
 MQTT Port: 1883
@@ -175,35 +175,24 @@ Device Name: rpi_lab
 Update Interval (seconds): 60
 ```
 
-The script will:
-- Create/update `/opt/rpi-lab/.env` with your settings
-- Test connection to MQTT broker
-- Restart mqtt_publisher.service automatically
-- Show service status and logs
-- Can be run again anytime to reconfigure
+It updates the `[MQTT]` section in `/opt/rpi-lab/config/sensor.conf`, installs/updates the systemd service, and starts it.
 
 **Option B: Manual Configuration**
 
-Create `/opt/rpi-lab/.env`:
-```bash
-sudo nano /opt/rpi-lab/.env
+Edit `/opt/rpi-lab/config/sensor.conf` and set the `[MQTT]` section:
+```ini
+[MQTT]
+broker = ha.mrmagic.synology.me
+port = 1883
+username = mqtt_user
+password = your_password
+topic_prefix = homeassistant
+device_name = rpi_lab
+update_interval = 60
 ```
 
-Add:
+Restart to apply:
 ```bash
-# MQTT Configuration
-MQTT_BROKER=ha.mrmagic.synology.me
-MQTT_PORT=1883
-MQTT_USER=mqtt_user
-MQTT_PASSWORD=your_password
-MQTT_TOPIC_PREFIX=homeassistant
-DEVICE_NAME=rpi_lab
-UPDATE_INTERVAL=60
-```
-
-Set permissions and restart:
-```bash
-sudo chmod 600 /opt/rpi-lab/.env
 sudo systemctl restart mqtt_publisher.service
 ```
 
@@ -268,83 +257,57 @@ Published: T=23.5°C, H=45.2%, P=1013.2hPa, G=125430Ω
 
 ### Change Update Interval
 
-Edit service file:
+Edit the config file (recommended):
 ```bash
-sudo nano /etc/systemd/system/mqtt_publisher.service
+sudo nano /opt/rpi-lab/config/sensor.conf
 ```
 
-Change:
+Set in the `[MQTT]` section:
 ```ini
-Environment="UPDATE_INTERVAL=30"
+update_interval = 300
 ```
 
 Restart:
 ```bash
-sudo systemctl daemon-reload
 sudo systemctl restart mqtt_publisher.service
 ```
 
 ### Change MQTT Broker
 
-**Method 1: Using .env file (Recommended)**
-
-Create or edit `/opt/rpi-lab/.env`:
+Edit the config file (recommended):
 ```bash
-sudo nano /opt/rpi-lab/.env
+sudo nano /opt/rpi-lab/config/sensor.conf
 ```
 
-Add:
-```bash
-MQTT_BROKER=your-ha-hostname-or-ip
-MQTT_PORT=1883
-MQTT_USER=mqtt_user
-MQTT_PASSWORD=your_password
-MQTT_TOPIC_PREFIX=homeassistant
-DEVICE_NAME=rpi_lab
-UPDATE_INTERVAL=300
-```
-
-Restart:
-```bash
-sudo systemctl restart mqtt_publisher.service rpi_gui.service
-```
-
-**Method 2: Using service file**
-
-Edit service file and update:
-```bash
-sudo systemctl edit mqtt_publisher.service --full
-```
-
-Update environment variables:
+Update the `[MQTT]` section:
 ```ini
-Environment="MQTT_BROKER=new-broker.com"
-Environment="MQTT_PORT=1883"
-Environment="MQTT_USER=mqtt_user"
-Environment="MQTT_PASSWORD=your_password"
+broker = your-ha-hostname-or-ip
+port = 1883
+username = mqtt_user
+password = your_password
+topic_prefix = homeassistant
 ```
 
 Restart:
 ```bash
-sudo systemctl daemon-reload
 sudo systemctl restart mqtt_publisher.service
 ```
 
 ### Use Different Device Name
 
-**Using .env file:**
+Edit the config file:
 ```bash
-sudo nano /opt/rpi-lab/.env
+sudo nano /opt/rpi-lab/config/sensor.conf
 ```
 
-Add:
-```bash
-DEVICE_NAME=bedroom_pi
-```
-
-**Using service file:**
+Set in `[MQTT]`:
 ```ini
-Environment="DEVICE_NAME=bedroom_pi"
+device_name = bedroom_pi
+```
+
+Restart the service:
+```bash
+sudo systemctl restart mqtt_publisher.service
 ```
 
 This changes the device name in Home Assistant.
@@ -370,9 +333,10 @@ certfile: fullchain.pem
 keyfile: privkey.pem
 ```
 
-3. **On Pi - Update service:**
+3. **On Pi - Update config:**
 ```ini
-Environment="MQTT_PORT=8883"
+[MQTT]
+port = 8883
 ```
 
 **Option 2: VPN Tunnel**

@@ -162,15 +162,25 @@ python3 sensors/test_humidity_calibration.py
 - You have a lab-grade hygrometer (not a cheap sensor)
 
 **Calibration (only after verification):**
+Edit the unified config file and restart services:
 ```bash
-# For MQTT publisher
-sudo systemctl edit mqtt_publisher.service --full
-# Add under [Service]:
-Environment="BME690_HUM_OFFSET=5.0"    # Add 5%RH
-# OR
-Environment="BME690_HUM_SCALE=1.1"     # Multiply by 1.1
+sudo nano /opt/rpi-lab/config/sensor.conf
+```
 
-sudo systemctl daemon-reload
+Under `[BME690]` set:
+```ini
+# Example: add 5%RH offset
+humidity_offset = 5.0
+
+# Or scale humidity by 1.1
+humidity_scale = 1.1
+
+# Keep gas heater enabled unless lab testing proves otherwise
+enable_gas = yes
+```
+
+Apply changes:
+```bash
 sudo systemctl restart mqtt_publisher.service rpi_gui.service
 ```
 

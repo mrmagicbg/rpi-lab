@@ -50,7 +50,7 @@ sudo systemctl restart rpi_gui.service
 sudo journalctl -u rpi_gui.service -f
 
 # MQTT configuration
-sudo bash /opt/rpi-lab/install/configure_mqtt.sh  # Interactive setup
+sudo bash /opt/rpi-lab/install/install_mqtt.sh    # Interactive setup (updates config/sensor.conf)
 sudo journalctl -u mqtt_publisher.service -f      # View MQTT logs
 
 # SSH monitoring (aliases auto-created)
@@ -106,4 +106,4 @@ See [LICENSE](LICENSE)
 
 ---
 
-**Version:** 3.0.8 | **Last Updated:** 2026-01-09
+**Version:** 3.1.0 | **Last Updated:** 2026-01-13
