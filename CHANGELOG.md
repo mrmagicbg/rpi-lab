@@ -2,6 +2,33 @@
 
 Recent releases. Full history in [docs/CHANGELOG_ARCHIVE.md](docs/CHANGELOG_ARCHIVE.md).
 
+## [3.1.1] - 2026-02-26
+**Import Fixes, Double Sensor Read Eliminated, Gas Availability, Live Clock**
+
+### Fixed
+- **Relative imports in package modules**: `sensors/__init__.py` and
+  `rf/tpms_logger.py` used absolute `from sensors.X import` / `from tpms_decoder import`
+  which broke when the package was imported as a module from outside its directory.
+  Converted to relative imports (`.bme690`, `.tpms_decoder`).
+- **Double sensor read per cycle**: `update_sensor_readings()` was calling both
+  `BME_SENSOR.read()` **and** `BME_SENSOR.read_formatted()` in sequence.
+  `read_formatted()` already calls `read()` internally, so this doubled I2C bus
+  traffic. Now calls `read()` once and formats values inline.
+- **`gas_kohm` defaulted to `0.0` when heater not ready**: `mqtt_publisher.py`
+  used `... if g is not None else 0.0`, which caused Home Assistant to show a
+  misleading value while the sensor heater was stabilizing. Now kept as `None`
+  so HA marks the entity unavailable until a real reading is available.
+- **Terminal detection using `subprocess.call(['which', ...])`**: Replaced with
+  `shutil.which(term)` — no child process spawned, proper cross-platform check.
+
+### Added
+- **Real-time clock in GUI header**: `gui/rpi_gui.py` now displays
+  `HH:MM:SS  DD Mon YYYY` (right-aligned in the title row), updating every
+  second via a `root.after(1000, ...)` loop. A thin separator line was added
+  below the header row for visual clarity.
+
+---
+
 ## [3.1.0] - 2026-01-13
 **Unified Config File for MQTT, GUI Thresholds; Installer Update**
 

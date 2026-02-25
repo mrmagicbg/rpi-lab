@@ -106,4 +106,4 @@ See [LICENSE](LICENSE)
 
 ---
 
-**Version:** 3.1.0 | **Last Updated:** 2026-01-13
+**Version:** 3.1.1 | **Last Updated:** 2026-02-26

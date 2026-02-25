@@ -5,6 +5,7 @@ Touch-friendly GUI for Waveshare 4.3" 800×480 display.
 ## Overview
 
 Full-screen GUI with:
+- **Real-time clock** in header (updates every second)
 - Real-time sensor data
 - Network information
 - System control buttons
@@ -12,6 +13,14 @@ Full-screen GUI with:
 - Audio alerts
 
 ## Layout
+
+### Title / Header Row
+
+The top of the window is a horizontal row containing:
+- **RPI Lab Control Panel** — title label (left-aligned, green `#00ff88`)
+- **Live clock** — `HH:MM:SS  DD Mon YYYY` (right-aligned, updated every second
+  via `root.after(1000, update_clock)`)
+- A 2-pixel separator line below the row for visual separation
 
 ### Top Panel - Information Display
 
