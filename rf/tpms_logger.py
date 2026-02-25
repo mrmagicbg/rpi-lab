@@ -13,7 +13,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 from pathlib import Path
 
-from tpms_decoder import TPMSReading
+from .tpms_decoder import TPMSReading
 
 logger = logging.getLogger(__name__)
 
@@ -312,7 +312,7 @@ if __name__ == '__main__':
     logger = TPMSLogger()
     
     # Add sample readings
-    from tpms_decoder import TPMSReading
+    from .tpms_decoder import TPMSReading
     
     sample = TPMSReading(
         sensor_id="12345678",

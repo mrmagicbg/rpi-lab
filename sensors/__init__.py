@@ -16,5 +16,5 @@ Example:
 __version__ = "0.5.0"
 __all__ = ["BME690Sensor", "BME690MCPTools"]
 
-from sensors.bme690 import BME690Sensor
-from sensors.bme690_mcp import BME690MCPTools
+from .bme690 import BME690Sensor
+from .bme690_mcp import BME690MCPTools

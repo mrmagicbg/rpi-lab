@@ -23,6 +23,7 @@ Requirements:
 
 import os
 import sys
+import shutil
 import subprocess
 import tkinter as tk
 from tkinter import messagebox
@@ -160,16 +161,33 @@ class RPILauncherGUI:
         main_frame = tk.Frame(self.root, bg='#1e1e1e')
         main_frame.pack(fill='both', expand=True, padx=20, pady=10)
         
-        # Title label
+        # Title + clock header frame
+        header_frame = tk.Frame(main_frame, bg='#1e1e1e')
+        header_frame.pack(fill='x', pady=(4, 0))
+
         title = tk.Label(
-            main_frame,
+            header_frame,
             text="RPI Lab Control Panel",
-            font=('Arial', 24, 'bold'),
+            font=('Arial', 22, 'bold'),
             fg='#00ff88',
             bg='#1e1e1e',
-            pady=10
+            anchor='w'
         )
-        title.pack()
+        title.pack(side='left', padx=4)
+
+        # Real-time clock (right-aligned in the header)
+        self.clock_label = tk.Label(
+            header_frame,
+            text=datetime.now().strftime("%H:%M:%S  %d %b %Y"),
+            font=('Arial', 18, 'bold'),
+            fg='#aaaaaa',
+            bg='#1e1e1e',
+            anchor='e'
+        )
+        self.clock_label.pack(side='right', padx=8)
+
+        # Thin separator under header
+        tk.Frame(main_frame, height=2, bg='#2d2d2d').pack(fill='x', pady=(2, 4))
         
         # Info display area (network + sensor in horizontal layout)
         info_frame = tk.Frame(main_frame, bg='#1e1e1e')
@@ -427,6 +445,7 @@ class RPILauncherGUI:
         # Start update loops
         self.update_network_info()
         self.update_sensor_readings()
+        self.update_clock()
         
         # Play startup beep
         if SPEAKER.available:
@@ -434,6 +453,11 @@ class RPILauncherGUI:
         
         logger.info("GUI initialized successfully")
     
+    def update_clock(self):
+        """Update the real-time clock label every second."""
+        self.clock_label.config(text=datetime.now().strftime("%H:%M:%S  %d %b %Y"))
+        self.root.after(1000, self.update_clock)
+
     def update_network_info(self):
         """Update network information display."""
         try:
@@ -545,18 +569,23 @@ class RPILauncherGUI:
     def update_sensor_readings(self):
         """Update sensor readings on main screen with error recovery and alert monitoring."""
         try:
+            # Single hardware read — read_formatted() also calls read() internally, so
+            # calling both was wasteful. Read once and format inline.
             h, t, p, g = BME_SENSOR.read()
-            data = BME_SENSOR.read_formatted()
-            
-            self.temp_label.config(text=data["temperature_str"]) 
-            self.humid_label.config(text=data["humidity_str"]) 
-            self.press_label.config(text=data["pressure_str"]) 
-            
+
+            temp_str  = f"{t:.2f}°C"    if t is not None else "N/A"
+            humid_str = f"{h:.2f}%"     if h is not None else "N/A"
+            press_str = f"{p:.2f} hPa"  if p is not None else "N/A"
+
+            self.temp_label.config(text=temp_str)
+            self.humid_label.config(text=humid_str)
+            self.press_label.config(text=press_str)
+
             # Update gas label with status text
             gas_text = self.get_gas_label_text(g)
-            self.gas_label.config(text=gas_text) 
+            self.gas_label.config(text=gas_text)
 
-            if data["temperature_str"] == "N/A":
+            if t is None:
                 # Sensor not responding - increment error counter
                 self.sensor_error_count += 1
                 
@@ -682,10 +711,10 @@ class RPILauncherGUI:
         """Open a terminal window."""
         logger.info("Shell button pressed")
         try:
-            # Try different terminal emulators
+            # Try different terminal emulators using shutil.which (no subprocess)
             terminals = ['x-terminal-emulator', 'xterm', 'lxterminal', 'gnome-terminal']
             for term in terminals:
-                if subprocess.call(['which', term], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL) == 0:
+                if shutil.which(term):
                     subprocess.Popen([term])
                     break
             else:

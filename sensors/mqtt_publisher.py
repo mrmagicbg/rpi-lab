@@ -245,15 +245,17 @@ class BME690Publisher:
             
             timestamp = datetime.now().isoformat()
             
-            # Scale gas resistance to kΩ for better readability in HA
-            gas_kohm = round(g / 1000.0, 1) if g is not None else 0.0
+            # Scale gas resistance to kΩ for readability in HA; keep None when
+            # sensor heater hasn't stabilised yet so HA marks it unavailable.
+            gas_kohm: float | None = round(g / 1000.0, 1) if g is not None else None
+            gas_value = gas_kohm if gas_kohm is not None else 0.0  # MQTT payload placeholder
             
             # Publish each sensor value
             sensors_data = {
                 "temperature": {"value": round(t, 2), "timestamp": timestamp},
                 "humidity": {"value": round(h, 2), "timestamp": timestamp},
                 "pressure": {"value": round(p, 2), "timestamp": timestamp},
-                "gas_resistance": {"value": gas_kohm, "timestamp": timestamp}
+                "gas_resistance": {"value": gas_value, "timestamp": timestamp}
             }
             
             for sensor_name, data in sensors_data.items():
@@ -266,7 +268,8 @@ class BME690Publisher:
                 else:
                     logger.error(f"Failed to publish {sensor_name}")
             
-            logger.info(f"Published: T={t:.1f}°C, H={h:.1f}%, P={p:.1f}hPa, G={gas_kohm:.1f}kΩ")
+            gas_str = f"{gas_kohm:.1f}kΩ" if gas_kohm is not None else "N/A"
+            logger.info(f"Published: T={t:.1f}°C, H={h:.1f}%, P={p:.1f}hPa, G={gas_str}")
             
         except Exception as e:
             logger.error(f"Error reading/publishing sensor data: {e}")
